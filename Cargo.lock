@@ -292,6 +292,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "carrier-pigeon-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.52",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"

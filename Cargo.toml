@@ -1,5 +1,5 @@
 [workspace]
 
 members = [
-    "carrier-pigeon-app",
+    "carrier-pigeon-app", "carrier-pigeon-macros",
 ]
