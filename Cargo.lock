@@ -281,6 +281,7 @@ dependencies = [
 name = "carrier-pigeon-app"
 version = "0.1.0"
 dependencies = [
+ "carrier_pigeon_macros",
  "iced",
  "log",
  "native-dialog",
@@ -292,9 +293,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "carrier-pigeon-macros"
+name = "carrier_pigeon_macros"
 version = "0.1.0"
 dependencies = [
+ "proc-macro2",
  "quote",
  "syn 2.0.52",
 ]

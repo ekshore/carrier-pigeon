@@ -10,46 +10,23 @@ use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 use simplelog::{ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode};
 
+use carrier_pigeon_macros::FromWrappedError;
+
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
-#[derive(Debug)]
-enum Error {
+#[derive(Debug, FromWrappedError)]
+enum PigeonError {
+    #[wrapper]
     ReqwestError(reqwest::Error),
+    #[wrapper]
     InvalidHeaderName(reqwest::header::InvalidHeaderName),
+    #[wrapper]
     InvalidHeaderValue(reqwest::header::InvalidHeaderValue),
+    #[wrapper]
     IoError(tokio::io::Error),
+    #[wrapper]
     JsonError(serde_json::Error),
     Err,
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(val: reqwest::Error) -> Self {
-        Error::ReqwestError(val)
-    }
-}
-
-impl From<reqwest::header::InvalidHeaderName> for Error {
-    fn from(val: reqwest::header::InvalidHeaderName) -> Self {
-        Error::InvalidHeaderName(val)
-    }
-}
-
-impl From<reqwest::header::InvalidHeaderValue> for Error {
-    fn from(val: reqwest::header::InvalidHeaderValue) -> Self {
-        Error::InvalidHeaderValue(val)
-    }
-}
-
-impl From<tokio::io::Error> for Error {
-    fn from(val: tokio::io::Error) -> Self {
-        Error::IoError(val)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(val: serde_json::Error) -> Self {
-        Error::JsonError(val)
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -82,7 +59,7 @@ struct Header {
 }
 
 impl Header {
-    pub fn fold(headers: Result<HeaderMap, Error>, el: &Self) -> Result<HeaderMap, Error> {
+    pub fn fold(headers: Result<HeaderMap, PigeonError>, el: &Self) -> Result<HeaderMap, PigeonError> {
         use reqwest::header::{HeaderName, HeaderValue};
         if let Ok(mut headers) = headers {
             headers.append(
@@ -91,7 +68,7 @@ impl Header {
             );
             Ok(headers)
         } else {
-            Err(Error::Err)
+            Err(PigeonError::Err)
         }
     }
 }
@@ -173,7 +150,7 @@ impl Request {
         self
     }
 
-    pub async fn from_file(file_path: PathBuf) -> Result<Self, Error> {
+    pub async fn from_file(file_path: PathBuf) -> Result<Self, PigeonError> {
         info!("Reading single request from file");
         let mut file = fs::File::open(file_path).await?;
         let mut buf = String::new();
@@ -184,7 +161,7 @@ impl Request {
         Ok(request)
     }
 
-    pub async fn save_to_file(&self, file_path: PathBuf) -> Result<(), Error> {
+    pub async fn save_to_file(&self, file_path: PathBuf) -> Result<(), PigeonError> {
         let req_json = serde_json::to_string(&self)?;
         let mut file = fs::File::create(file_path).await?;
         info!("Writing to file");
@@ -194,7 +171,7 @@ impl Request {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), PigeonError> {
     let _logger = CombinedLogger::init(vec![TermLogger::new(
         LevelFilter::Debug,
         Config::default(),
@@ -220,7 +197,7 @@ async fn main() -> Result<(), Error> {
     if let Some(path) = path {
         request = Request::from_file(path).await?;
     } else {
-        return Err(Error::Err);
+        return Err(PigeonError::Err);
     }
 
     let path = native_dialog::FileDialog::new()
