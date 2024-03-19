@@ -1,5 +1,5 @@
 [package]
-name = "carrier_pigeon_macros"
+name = "carrier-pigeon-macros"
 version = "0.1.0"
 edition = "2021"
 
