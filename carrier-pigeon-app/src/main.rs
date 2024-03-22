@@ -1,7 +1,6 @@
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
-use reqwest;
 use reqwest::header::HeaderMap;
 use simplelog::{ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode};
 

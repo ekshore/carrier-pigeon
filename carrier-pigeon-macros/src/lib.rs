@@ -14,7 +14,7 @@ pub fn from_wrapped_error(input: TokenStream) -> TokenStream {
             .filter(|v| {
                 let attr = v.attrs.iter().find(|attr| {
                     if let Some(ident) = attr.path().get_ident() {
-                        ident.to_string() == String::from("wrapper")
+                        *ident == *"wrapper"
                     } else {
                         false
                     }

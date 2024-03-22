@@ -4,7 +4,6 @@ use std::path::PathBuf;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
-use reqwest;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 
@@ -34,9 +33,9 @@ pub enum Method {
     POST,
 }
 
-impl Into<reqwest::Method> for Method {
-    fn into(self) -> reqwest::Method {
-        match self {
+impl From<Method> for reqwest::Method {
+    fn from(val: Method) -> Self {
+        match val {
             Method::GET => reqwest::Method::GET,
             Method::POST => reqwest::Method::POST,
         }
@@ -86,7 +85,6 @@ pub struct Request {
     pub query_params: Option<HashMap<String, String>>,
 }
 
-#[allow(dead_code)]
 impl Request {
     pub fn new(method: Method, url: String) -> Self {
         Request {
