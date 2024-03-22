@@ -22,7 +22,6 @@ async fn main() -> Result<(), PigeonError> {
         .user_agent(APP_USER_AGENT)
         .build()?;
 
-    use native_dialog;
 
     let path = native_dialog::FileDialog::new()
         .set_location("~")
