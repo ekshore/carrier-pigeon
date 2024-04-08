@@ -24,6 +24,8 @@ pub enum PigeonError {
     IoError(tokio::io::Error),
     #[wrapper]
     JsonError(serde_json::Error),
+    #[wrapper]
+    IcedError(iced::Error),
     Err,
 }
 
@@ -167,5 +169,21 @@ impl Request {
         info!("Writing to file");
         file.write_all(req_json.as_bytes()).await?;
         Ok(())
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Collection {
+    pub requests: Vec<Request>,
+    pub environment: HashMap<String, String>,
+}
+
+impl Collection {
+    pub fn new() -> Self {
+        Collection::default()
+    }
+
+    pub fn add_request(&mut self, req: Request) {
+        self.requests.push(req);
     }
 }
