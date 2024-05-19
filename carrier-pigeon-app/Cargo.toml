@@ -15,3 +15,4 @@ tokio = { version = "1.36.0", features = ["full"] }
 carrier-pigeon-macros = { path = "../carrier-pigeon-macros" }
 carrier-pigeon-lib = { path = "../carrier-pigeon-lib/" }
 ratatui = { version = "0.26.2", features = ["unstable-widget-ref"] }
+crossterm = "0.27.0"
