@@ -8,6 +8,7 @@ use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMo
 
 use state::App;
 
+mod errors;
 mod state;
 mod ui;
 mod tui;
@@ -17,6 +18,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    errors::install_hooks()?;
     let config = simplelog::ConfigBuilder::new().build();
     let _logger = CombinedLogger::init(vec![TermLogger::new(
         LevelFilter::Debug,
