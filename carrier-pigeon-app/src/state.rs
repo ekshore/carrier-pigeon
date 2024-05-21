@@ -1,5 +1,6 @@
 use crate::tui::Tui;
 use carrier_pigeon_lib::Request;
+use crossterm::event::{KeyEvent, KeyCode, self, Event};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
@@ -66,6 +67,22 @@ impl App {
     }
 
     pub fn handle_events(&mut self) -> io::Result<()> {
-        todo!()
+        match event::read()? {
+            Event::Key(key_event) => self.handle_key_events(key_event),
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub fn handle_key_events(&mut self, event: KeyEvent) {
+        match event.code {
+            KeyCode::Char('q') | KeyCode::Char('Q') => self.exit(),
+            _ => {}
+        }
+    }
+
+    fn exit(&mut self) {
+        self.exit = true;
     }
 }
