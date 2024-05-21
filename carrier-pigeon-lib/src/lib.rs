@@ -1,3 +1,5 @@
+use color_eyre::Result;
+use color_eyre::eyre::bail;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -9,25 +11,6 @@ use serde::{Deserialize, Serialize};
 
 use tokio::fs;
 use tokio::io::{ AsyncReadExt, AsyncWriteExt };
-
-use carrier_pigeon_macros::FromWrappedError;
-
-#[derive(Debug, FromWrappedError)]
-pub enum PigeonError {
-    #[wrapper]
-    ReqwestError(reqwest::Error),
-    #[wrapper]
-    InvalidHeaderName(reqwest::header::InvalidHeaderName),
-    #[wrapper]
-    InvalidHeaderValue(reqwest::header::InvalidHeaderValue),
-    #[wrapper]
-    IoError(tokio::io::Error),
-    #[wrapper]
-    JsonError(serde_json::Error),
-    #[wrapper]
-    IcedError(iced::Error),
-    Err,
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Method {
@@ -60,9 +43,9 @@ pub struct Header {
 
 impl Header {
     pub fn fold(
-        headers: Result<HeaderMap, PigeonError>,
+        headers: Result<HeaderMap>,
         el: &Self,
-    ) -> Result<HeaderMap, PigeonError> {
+    ) -> Result<HeaderMap> {
         use reqwest::header::{HeaderName, HeaderValue};
         if let Ok(mut headers) = headers {
             headers.append(
@@ -71,7 +54,7 @@ impl Header {
             );
             Ok(headers)
         } else {
-            Err(PigeonError::Err)
+            bail!("Invalid Headers")
         }
     }
 }
@@ -152,7 +135,7 @@ impl Request {
         self
     }
 
-    pub async fn from_file(file_path: PathBuf) -> Result<Self, PigeonError> {
+    pub async fn from_file(file_path: PathBuf) -> Result<Self> {
         info!("Reading single request from file");
         let mut file = fs::File::open(file_path).await?;
         let mut buf = String::new();
@@ -163,7 +146,7 @@ impl Request {
         Ok(request)
     }
 
-    pub async fn save_to_file(&self, file_path: PathBuf) -> Result<(), PigeonError> {
+    pub async fn save_to_file(&self, file_path: PathBuf) -> Result<()> {
         let req_json = serde_json::to_string(&self)?;
         let mut file = fs::File::create(file_path).await?;
         info!("Writing to file");
