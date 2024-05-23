@@ -2,5 +2,5 @@
 resolver = "2"
 
 members = [
-    "carrier-pigeon-app", "carrier-pigeon-lib", "carrier-pigeon-macros",
+    "carrier-pigeon-app", "carrier-pigeon-macros",
 ]

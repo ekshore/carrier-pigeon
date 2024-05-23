@@ -9,6 +9,7 @@ use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMo
 use state::App;
 
 mod errors;
+mod model;
 mod state;
 mod ui;
 mod tui;

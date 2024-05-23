@@ -1,5 +1,5 @@
 use crate::tui::Tui;
-use carrier_pigeon_lib::Request;
+use crate::model::Request;
 use crossterm::event::{KeyEvent, KeyCode, self, Event};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
