@@ -11,7 +11,6 @@ use state::App;
 mod errors;
 mod model;
 mod state;
-mod ui;
 mod tui;
 
 #[allow(dead_code)]
