@@ -1,8 +1,8 @@
-use crate::tui::Tui;
 use crate::model::Request;
-use crossterm::event::{KeyEvent, KeyCode, self, Event};
+use crate::tui::Tui;
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::{
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
     text::{Line, Text},
     widgets::{
@@ -28,6 +28,8 @@ enum Pane {
     Select,
     Request,
     Response,
+    Url,
+    Main,
 }
 
 #[derive(Debug, Default)]
@@ -48,22 +50,81 @@ impl App {
     }
 
     pub fn render_frame(&self, frame: &mut Frame) {
-        let panes = Layout::default()
+        let vertical_panes = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(30), Constraint::Min(10)])
             .split(frame.size());
 
-        let title = Title::from(" Carrier Pigeon ".bold()).position(Position::Top);
-        let key_binds = Title::from(Line::from(vec![])).position(Position::Bottom);
+        let view_options = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(40),
+                Constraint::Percentage(30),
+                Constraint::Percentage(30),
+            ])
+            .split(vertical_panes[0]);
 
-        let app_block = Block::default()
-            .title(title)
-            .title(key_binds)
+        let view_panes = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(40)])
+            .split(vertical_panes[1]);
+
+        let request_select_pane = Block::default()
+            .title(
+                Title::from(" Requests ".bold())
+                    .position(Position::Top)
+                    .alignment(Alignment::Left),
+            )
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(Color::White));
 
-        frame.render_widget(app_block, frame.size());
+        let request_details_pane = Block::default()
+            .title(
+                Title::from(" Request ".bold())
+                    .position(Position::Top)
+                    .alignment(Alignment::Left),
+            )
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::White));
+
+        let response_details_pane = Block::default()
+            .title(
+                Title::from(" Response ".bold())
+                    .position(Position::Top)
+                    .alignment(Alignment::Left),
+            )
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::White));
+
+        let url_bar = Block::default()
+            .title(
+                Title::from(" URL ".bold())
+                    .position(Position::Top)
+                    .alignment(Alignment::Left),
+            )
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::White));
+
+        let main_view = Block::default()
+            .title(
+                Title::from(" Body ".bold())
+                .position(Position::Top)
+                .alignment(Alignment::Left),
+            )
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::White));
+
+        frame.render_widget(request_select_pane, view_options[0]);
+        frame.render_widget(request_details_pane, view_options[1]);
+        frame.render_widget(response_details_pane, view_options[2]);
+
+        frame.render_widget(url_bar, view_panes[0]);
+        frame.render_widget(main_view, view_panes[1]);
     }
 
     pub fn handle_events(&mut self) -> io::Result<()> {
