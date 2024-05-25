@@ -4,10 +4,9 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
-    text::{Line, Text},
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Borders, Paragraph,
+        Block, BorderType, Borders,
     },
     Frame,
 };
