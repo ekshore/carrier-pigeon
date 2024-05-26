@@ -16,9 +16,9 @@ use std::io;
 
 #[derive(Debug, Default)]
 enum Modal {
+    #[default]
     Loading,
     Environment,
-    #[default]
     None,
 }
 
@@ -69,27 +69,34 @@ impl App {
             .constraints([Constraint::Length(3), Constraint::Min(40)])
             .split(vertical_panes[1]);
 
-
-        let request_select_pane = ui::title_block(" Requests ".into(), Color::White);
-        let request_details_pane = ui::title_block(" Request ".into(), Color::White);
-        let response_details_pane = ui::title_block(" Response ".into(), Color::White);
+        let request_select_block = ui::title_block(" Requests ".into(), Color::White);
+        let request_details_block = ui::title_block(" Request ".into(), Color::White);
+        let response_details_block = ui::title_block(" Response ".into(), Color::White);
 
         let url_bar = ui::title_block(" URL ".into(), Color::White);
         let main_view = ui::title_block(" Body ".into(), Color::White);
 
-        frame.render_widget(request_select_pane, view_options[0]);
-        frame.render_widget(request_details_pane, view_options[1]);
-        frame.render_widget(response_details_pane, view_options[2]);
+        frame.render_widget(request_select_block, view_options[0]);
+        frame.render_widget(request_details_block, view_options[1]);
+        frame.render_widget(response_details_block, view_options[2]);
 
         frame.render_widget(url_bar, view_panes[0]);
         frame.render_widget(main_view, view_panes[1]);
-        
+
         match self.active_modal {
-            Modal::None => {},
+            Modal::None => {}
             Modal::Loading => {
-                
-            },
-            Modal::Environment => todo!()
+                let modal = ui::title_block(" Load Collection ".into(), Color::White);
+                let modal = modal.title(
+                    Title::from(" (c) to create / (q) to quit ")
+                        .position(Position::Bottom)
+                        .alignment(Alignment::Center),
+                );
+                let modal_area = ui::modal(50, 25, frame.size());
+
+                frame.render_widget(modal, modal_area);
+            }
+            Modal::Environment => todo!(),
         }
     }
 

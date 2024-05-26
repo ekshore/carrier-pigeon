@@ -31,6 +31,7 @@ async fn main() -> Result<()> {
     let mut tui = tui::init()?;
 
     let mut app = App::default();
+    println!("{:?}", app);
     app.run(&mut tui)?;
 
     tui::restore()?;
