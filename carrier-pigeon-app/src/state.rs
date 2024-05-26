@@ -1,5 +1,6 @@
 use crate::model::Request;
 use crate::tui::Tui;
+use crate::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -68,55 +69,13 @@ impl App {
             .constraints([Constraint::Length(3), Constraint::Min(40)])
             .split(vertical_panes[1]);
 
-        let request_select_pane = Block::default()
-            .title(
-                Title::from(" Requests ".bold())
-                    .position(Position::Top)
-                    .alignment(Alignment::Left),
-            )
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::White));
 
-        let request_details_pane = Block::default()
-            .title(
-                Title::from(" Request ".bold())
-                    .position(Position::Top)
-                    .alignment(Alignment::Left),
-            )
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::White));
+        let request_select_pane = ui::title_block(" Requests ".into(), Color::White);
+        let request_details_pane = ui::title_block(" Request ".into(), Color::White);
+        let response_details_pane = ui::title_block(" Response ".into(), Color::White);
 
-        let response_details_pane = Block::default()
-            .title(
-                Title::from(" Response ".bold())
-                    .position(Position::Top)
-                    .alignment(Alignment::Left),
-            )
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::White));
-
-        let url_bar = Block::default()
-            .title(
-                Title::from(" URL ".bold())
-                    .position(Position::Top)
-                    .alignment(Alignment::Left),
-            )
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::White));
-
-        let main_view = Block::default()
-            .title(
-                Title::from(" Body ".bold())
-                .position(Position::Top)
-                .alignment(Alignment::Left),
-            )
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::White));
+        let url_bar = ui::title_block(" URL ".into(), Color::White);
+        let main_view = ui::title_block(" Body ".into(), Color::White);
 
         frame.render_widget(request_select_pane, view_options[0]);
         frame.render_widget(request_details_pane, view_options[1]);
@@ -124,6 +83,14 @@ impl App {
 
         frame.render_widget(url_bar, view_panes[0]);
         frame.render_widget(main_view, view_panes[1]);
+        
+        match self.active_modal {
+            Modal::None => {},
+            Modal::Loading => {
+                
+            },
+            Modal::Environment => todo!()
+        }
     }
 
     pub fn handle_events(&mut self) -> io::Result<()> {
