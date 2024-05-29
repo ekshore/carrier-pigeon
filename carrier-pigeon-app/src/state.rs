@@ -2,17 +2,22 @@ use crate::model::Request;
 use crate::tui::Tui;
 use crate::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use log::debug;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
+    text::Line,
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Borders,
+        Block, BorderType, Borders, Paragraph,
     },
     Frame,
 };
 
-use std::io;
+use std::{
+    io,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Debug, Default)]
 enum Modal {
@@ -32,15 +37,27 @@ enum Pane {
     Main,
 }
 
-#[derive(Debug, Default)]
 pub struct App {
     active_modal: Modal,
     active_pane: Pane,
     requests: Vec<Request>,
     exit: bool,
+    // Debugging
+    debug_logs: Arc<Mutex<ui::log::RecordBuff>>,
+    show_debug: bool,
 }
 
 impl App {
+    pub fn new(debug_logs: Arc<Mutex<ui::log::RecordBuff>>) -> Self {
+        App {
+            active_modal: Modal::default(),
+            active_pane: Pane::default(),
+            requests: vec![],
+            exit: false,
+            debug_logs,
+            show_debug: false,
+        }
+    }
     pub fn run(&mut self, terminal: &mut Tui) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.render_frame(frame))?;
@@ -50,6 +67,7 @@ impl App {
     }
 
     pub fn render_frame(&self, frame: &mut Frame) {
+        debug!("Start render_frame()");
         let vertical_panes = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(30), Constraint::Min(10)])
@@ -98,6 +116,27 @@ impl App {
             }
             Modal::Environment => todo!(),
         }
+
+        if self.show_debug {
+            let debug_modal = ui::title_block(" Debug Log ".into(), Color::LightGreen);
+            let area = ui::modal(50, 50, frame.size());
+
+            let logs = if let Ok(log_buf) = self.debug_logs.lock() {
+                    log_buf.records.iter()
+                        .filter(|record| record.is_some())
+                        .map(|record| record.as_ref().unwrap())
+                        .map(|record| Line::from(String::from(record.as_ref())))
+                        .collect()
+            } else {
+                vec![Line::from("SHIT")]
+            };
+
+            let logs = Paragraph::new(logs)
+                .block(debug_modal)
+                .alignment(Alignment::Left);
+
+            frame.render_widget(logs, area);
+        }
     }
 
     pub fn handle_events(&mut self) -> io::Result<()> {
@@ -112,11 +151,27 @@ impl App {
     pub fn handle_key_events(&mut self, event: KeyEvent) {
         match event.code {
             KeyCode::Char('q') | KeyCode::Char('Q') => self.exit(),
+            KeyCode::F(12) => self.toggle_debug(),
             _ => {}
         }
     }
 
     fn exit(&mut self) {
         self.exit = true;
+    }
+
+    fn toggle_debug(&mut self) {
+        self.show_debug = !self.show_debug;
+    }
+}
+
+impl std::fmt::Debug for App {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("App")
+            .field("active_modal", &format_args!("{:?}", self.active_modal))
+            .field("active_pane", &format_args!("{:?}", self.active_pane))
+            .field("requests", &format_args!("{:?}", self.requests))
+            .field("exit", &self.exit)
+            .finish()
     }
 }
