@@ -42,28 +42,32 @@ pub fn modal(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
 pub mod log {
     use std::sync::{Arc, Mutex};
 
-    use log::{LevelFilter, Log};
+    use log::{Level, LevelFilter, Log};
+    use ratatui::{
+        style::{Style, Stylize},
+        text::{Line, Span},
+    };
     use simplelog::{Config, SharedLogger};
 
-    pub struct RecordBuff {
-        pub records: [Option<Box<str>>; 256],
+    pub struct RecordBuff<'a> {
+        pub log_lines: [Option<Box<Line<'a>>>; 256],
         latest_idx: u8,
     }
 
     pub struct UILogger {
         level: LevelFilter,
         config: Config,
-        record_buf: Arc<Mutex<RecordBuff>>,
+        record_buf: Arc<Mutex<RecordBuff<'static>>>,
     }
 
     impl UILogger {
-        pub fn new(level: LevelFilter, config: Config) -> (Self, Arc<Mutex<RecordBuff>>) {
-            const INIT: Option<Box<str>> = None;
+        pub fn new(level: LevelFilter, config: Config) -> (Self, Arc<Mutex<RecordBuff<'static>>>) {
+            const INIT_LINES: Option<Box<Line<'static>>> = None;
             let latest_idx = 255;
-            let records = [INIT; 256];
+            let log_lines = [INIT_LINES; 256];
             let record_buf = Arc::new(Mutex::new(RecordBuff {
                 latest_idx,
-                records,
+                log_lines,
             }));
             (
                 UILogger {
@@ -108,10 +112,27 @@ pub mod log {
                 record.args()
             );
 
+            let level_sytle = match record.level() {
+                Level::Trace => Style::new().light_cyan().bold(),
+                Level::Debug => Style::new().light_green().bold(),
+                Level::Info => Style::new().light_blue().bold(),
+                Level::Warn => Style::new().light_yellow().bold(),
+                Level::Error => Style::new().light_red().bold(),
+            };
+
+            let log_line = Line::from(vec![
+                Span::raw("["),
+                Span::styled(record.level().to_string(), level_sytle),
+                Span::raw("] "),
+                Span::raw(record.target().to_owned()),
+                Span::raw(": "),
+                Span::raw(record.args().to_string()),
+            ]);
+
             let record_buf = self.record_buf.clone();
             if let Ok(mut record_buf) = record_buf.lock() {
                 let idx = record_buf.latest_idx.wrapping_add(1);
-                record_buf.records[idx as usize] = Some(log_record.into_boxed_str());
+                record_buf.log_lines[idx as usize] = Some(Box::new(log_line));
                 record_buf.latest_idx = idx;
             };
         }
@@ -139,8 +160,7 @@ pub mod log {
 
             if let Ok(logs) = logs.lock() {
                 assert_eq!(logs.latest_idx, 0);
-                assert_ne!(logs.records[0], None);
-                println!("{}", logs.records[0].as_ref().unwrap());
+                assert_ne!(logs.log_lines[0], None);
             };
         }
 
@@ -190,8 +210,16 @@ pub mod log {
             logger.log(&overflow_record);
 
             if let Ok(logs) = logs.lock() {
-                assert!(!logs.records[255].as_ref().unwrap().contains("OVERFLOW"));
-                assert!(logs.records[0].as_ref().unwrap().contains("OVERFLOW"));
+                assert!(!logs.log_lines[255]
+                    .as_ref()
+                    .unwrap()
+                    .to_string()
+                    .contains("OVERFLOW"));
+                assert!(logs.log_lines[0]
+                    .as_ref()
+                    .unwrap()
+                    .to_string()
+                    .contains("OVERFLOW"));
                 assert_eq!(logs.latest_idx, 0);
             } else {
                 assert!(false);

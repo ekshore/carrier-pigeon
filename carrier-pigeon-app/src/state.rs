@@ -2,14 +2,14 @@ use crate::model::Request;
 use crate::tui::Tui;
 use crate::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use log::debug;
+use log::{debug, error, info, trace, warn};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style, Stylize},
+    style::Color,
     text::Line,
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Borders, Paragraph,
+        Paragraph,
     },
     Frame,
 };
@@ -37,18 +37,18 @@ enum Pane {
     Main,
 }
 
-pub struct App {
+pub struct App<'a> {
     active_modal: Modal,
     active_pane: Pane,
     requests: Vec<Request>,
     exit: bool,
     // Debugging
-    debug_logs: Arc<Mutex<ui::log::RecordBuff>>,
+    debug_logs: Arc<Mutex<ui::log::RecordBuff<'a>>>,
     show_debug: bool,
 }
 
-impl App {
-    pub fn new(debug_logs: Arc<Mutex<ui::log::RecordBuff>>) -> Self {
+impl<'a> App<'a> {
+    pub fn new(debug_logs: Arc<Mutex<ui::log::RecordBuff<'a>>>) -> Self {
         App {
             active_modal: Modal::default(),
             active_pane: Pane::default(),
@@ -67,7 +67,11 @@ impl App {
     }
 
     pub fn render_frame(&self, frame: &mut Frame) {
+        trace!("trace");
         debug!("Start render_frame()");
+        info!("info");
+        warn!("warn");
+        error!("error");
         let vertical_panes = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(30), Constraint::Min(10)])
@@ -122,11 +126,13 @@ impl App {
             let area = ui::modal(50, 50, frame.size());
 
             let logs = if let Ok(log_buf) = self.debug_logs.lock() {
-                    log_buf.records.iter()
-                        .filter(|record| record.is_some())
-                        .map(|record| record.as_ref().unwrap())
-                        .map(|record| Line::from(String::from(record.as_ref())))
-                        .collect()
+                log_buf
+                    .log_lines
+                    .iter()
+                    .filter(|line| line.is_some())
+                    .map(|line| line.as_ref().unwrap())
+                    .map(|line| line.as_ref().to_owned())
+                    .collect()
             } else {
                 vec![Line::from("SHIT")]
             };
@@ -165,7 +171,7 @@ impl App {
     }
 }
 
-impl std::fmt::Debug for App {
+impl<'a> std::fmt::Debug for App<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App")
             .field("active_modal", &format_args!("{:?}", self.active_modal))
