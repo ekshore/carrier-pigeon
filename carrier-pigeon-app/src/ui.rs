@@ -123,7 +123,10 @@ pub mod log {
             let log_line = Line::from(vec![
                 Span::raw("["),
                 Span::styled(record.level().to_string(), level_sytle),
-                Span::raw("] "),
+                Span::raw(match record.level() {
+                    Level::Info | Level::Warn => "]  ",
+                    _ => "] ",
+                }),
                 Span::raw(record.target().to_owned()),
                 Span::raw(": "),
                 Span::raw(record.args().to_string()),
