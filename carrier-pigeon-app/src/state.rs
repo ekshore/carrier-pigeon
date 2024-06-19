@@ -9,7 +9,7 @@ use ratatui::{
     text::Line,
     widgets::{
         block::{Position, Title},
-        Paragraph,
+        Paragraph, Wrap,
     },
     Frame,
 };
@@ -58,6 +58,7 @@ impl<'a> App<'a> {
             show_debug: false,
         }
     }
+
     pub fn run(&mut self, terminal: &mut Tui) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.render_frame(frame))?;
@@ -67,11 +68,8 @@ impl<'a> App<'a> {
     }
 
     pub fn render_frame(&self, frame: &mut Frame) {
-        trace!("trace");
         debug!("Start render_frame()");
-        info!("info");
-        warn!("warn");
-        error!("error");
+        debug!("App State: {:?}", self);
         let vertical_panes = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(30), Constraint::Min(10)])
@@ -138,6 +136,7 @@ impl<'a> App<'a> {
             };
 
             let logs = Paragraph::new(logs)
+                .wrap( Wrap { trim: true })
                 .block(debug_modal)
                 .alignment(Alignment::Left);
 
