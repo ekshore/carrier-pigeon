@@ -11,6 +11,8 @@ use std::time::Duration;
 
 use state::App;
 
+use crate::state::Mode;
+
 mod errors;
 mod model;
 mod state;
@@ -21,7 +23,10 @@ mod ui;
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 enum Message {
+    LoadRequest(String),
+    Insert,
     Input(char),
+    Normal,
     Quit,
     ToggleDebug,
 }
@@ -58,10 +63,13 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn handle_events(_: &App) -> Result<Option<Message>> {
+fn handle_events(app: &App) -> Result<Option<Message>> {
     if event::poll(Duration::from_millis(100))? {
         let event = match event::read()? {
-            Event::Key(key_event) => handle_key_event(key_event),
+            Event::Key(key_event) => match app.mode {
+                Mode::Normal => handle_normal_key(key_event),
+                Mode::Insert => handle_insert_key(key_event),
+            },
             _ => None,
         };
         Ok(event)
@@ -70,9 +78,10 @@ fn handle_events(_: &App) -> Result<Option<Message>> {
     }
 }
 
-fn handle_key_event(key_event: KeyEvent) -> Option<Message> {
+fn handle_normal_key(key_event: KeyEvent) -> Option<Message> {
     if key_event.kind == event::KeyEventKind::Press {
         match key_event.code {
+            KeyCode::Char('i') => Some(Message::Insert),
             KeyCode::Char('q') => Some(Message::Quit),
             KeyCode::Char('Q') => Some(Message::Quit),
             KeyCode::F(12) => Some(Message::ToggleDebug),
@@ -83,9 +92,33 @@ fn handle_key_event(key_event: KeyEvent) -> Option<Message> {
     }
 }
 
+fn handle_insert_key(key_event: KeyEvent) -> Option<Message> {
+    if key_event.kind == event::KeyEventKind::Press {
+        match key_event.code {
+            KeyCode::Esc => Some(Message::Normal),
+            KeyCode::Char(char) => Some(Message::Input(char)),
+            _ => None,
+        }
+    } else {
+        None
+    }
+}
+
 fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
-    debug!("Update Start Current App State: {:?}", &app);
-    match msg {
+    debug!("Start update app state: {:?}", &app);
+    let msg = match msg {
+        Message::Insert => {
+            app.mode = Mode::Insert;
+            Ok(None)
+        }
+        Message::Input(char) => {
+            debug!("Input character recieved: '{}'", char);
+            Ok(None)
+        }
+        Message::Normal => {
+            app.mode = Mode::Normal;
+            Ok(None)
+        }
         Message::Quit => {
             app.exit();
             Ok(None)
@@ -95,5 +128,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             Ok(None)
         }
         _ => Ok(None),
-    }
+    };
+    debug!("End Update app state: {:?}", &app);
+    msg
 }

@@ -12,6 +12,13 @@ pub enum Modal {
 }
 
 #[derive(Debug, Default)]
+pub enum Mode {
+    #[default]
+    Normal,
+    Insert,
+}
+
+#[derive(Debug, Default)]
 pub enum Pane {
     #[default]
     Select,
@@ -22,6 +29,7 @@ pub enum Pane {
 }
 
 pub struct App<'a> {
+    pub mode: Mode,
     pub active_modal: Modal,
     pub active_pane: Pane,
     pub requests: Vec<Request>,
@@ -34,6 +42,7 @@ pub struct App<'a> {
 impl<'a> App<'a> {
     pub fn new(debug_logs: Arc<Mutex<ui::log::RecordBuff<'a>>>) -> Self {
         App {
+            mode: Mode::default(),
             active_modal: Modal::default(),
             active_pane: Pane::default(),
             requests: vec![],
@@ -55,10 +64,11 @@ impl<'a> App<'a> {
 impl<'a> std::fmt::Debug for App<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App")
+            .field("mode:", &format_args!("{:?}", self.mode))
             .field("active_modal", &format_args!("{:?}", self.active_modal))
             .field("active_pane", &format_args!("{:?}", self.active_pane))
             .field("requests", &format_args!("{:?}", self.requests))
-            .field("exit", &self.running)
+            .field("running", &self.running)
             .finish()
     }
 }
