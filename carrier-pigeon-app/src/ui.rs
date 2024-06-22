@@ -1,11 +1,12 @@
+use crate::state::*;
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Stylize},
-    widgets::{
+    layout::{Alignment, Constraint, Direction, Layout, Rect}, style::{Color, Style, Stylize}, terminal::Frame, text::Line, widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders,
-    },
+        BorderType, Borders, Paragraph, Wrap,
+    }
 };
+
+use crate::state::App;
 
 pub fn title_block(title_txt: String, color: Color) -> Block<'static> {
     Block::default()
@@ -19,7 +20,7 @@ pub fn title_block(title_txt: String, color: Color) -> Block<'static> {
         .border_style(Style::default().fg(color))
 }
 
-pub fn modal(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
+pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -37,6 +38,81 @@ pub fn modal(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(chunks[1])[1]
+}
+
+pub fn draw(app: &App, frame: &mut Frame) -> () {
+    let vertical_panes = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(30), Constraint::Min(10)])
+        .split(frame.size());
+
+    let view_options = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(40),
+            Constraint::Percentage(30),
+            Constraint::Percentage(30),
+        ])
+        .split(vertical_panes[0]);
+
+    let view_panes = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(40)])
+        .split(vertical_panes[1]);
+
+    let request_select_block = title_block(" Requests ".into(), Color::White);
+    let request_details_block = title_block(" Request ".into(), Color::White);
+    let response_details_block = title_block(" Response ".into(), Color::White);
+
+    let url_bar = title_block(" URL ".into(), Color::White);
+    let main_view = title_block(" Body ".into(), Color::White);
+
+    frame.render_widget(request_select_block, view_options[0]);
+    frame.render_widget(request_details_block, view_options[1]);
+    frame.render_widget(response_details_block, view_options[2]);
+
+    frame.render_widget(url_bar, view_panes[0]);
+    frame.render_widget(main_view, view_panes[1]);
+
+    match app.active_modal {
+        Modal::None => {}
+        Modal::Loading => {
+            let modal = title_block(" Load Collection ".into(), Color::White);
+            let modal = modal.title(
+                Title::from(" (c) to create / (q) to quit ")
+                    .position(Position::Bottom)
+                    .alignment(Alignment::Center),
+            );
+            let modal_area = modal_layout(50, 25, frame.size());
+
+            frame.render_widget(modal, modal_area);
+        }
+        Modal::Environment => todo!(),
+    }
+
+    if app.show_debug {
+        let debug_modal = title_block(" Debug Log ".into(), Color::LightGreen);
+        let area = modal_layout(75, 50, frame.size());
+
+        let logs = if let Ok(log_buf) = app.debug_logs.lock() {
+            log_buf
+                .log_lines
+                .iter()
+                .filter(|line| line.is_some())
+                .map(|line| line.as_ref().unwrap())
+                .map(|line| line.as_ref().to_owned())
+                .collect()
+        } else {
+            vec![Line::from("SHIT")]
+        };
+
+        let logs = Paragraph::new(logs)
+            .wrap(Wrap { trim: true })
+            .block(debug_modal)
+            .alignment(Alignment::Left);
+
+        frame.render_widget(logs, area);
+    }
 }
 
 pub mod log {
