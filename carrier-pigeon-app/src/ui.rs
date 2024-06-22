@@ -1,9 +1,13 @@
 use crate::state::*;
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect}, style::{Color, Style, Stylize}, terminal::Frame, text::Line, widgets::{
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Style, Stylize},
+    terminal::Frame,
+    text::Line,
+    widgets::{
         block::{Block, Position, Title},
         BorderType, Borders, Paragraph, Wrap,
-    }
+    },
 };
 
 use crate::state::App;
@@ -40,7 +44,7 @@ pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
         .split(chunks[1])[1]
 }
 
-pub fn draw(app: &App, frame: &mut Frame) -> () {
+pub fn draw(app: &App, frame: &mut Frame) {
     let vertical_panes = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Length(30), Constraint::Min(10)])
@@ -179,14 +183,6 @@ pub mod log {
             if !self.enabled(record.metadata()) {
                 return;
             }
-
-            let log_record = format!(
-                "[{}]:{}({}) - {}",
-                record.level(),
-                record.target(),
-                record.line().map_or("-".into(), |v| format!("{}", v)),
-                record.args()
-            );
 
             let level_sytle = match record.level() {
                 Level::Trace => Style::new().light_cyan().bold(),

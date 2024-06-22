@@ -1,6 +1,5 @@
 use crate::model::Request;
 use crate::ui;
-use crossterm::event::{KeyCode, KeyEvent};
 
 use std::sync::{Arc, Mutex};
 

@@ -1,5 +1,5 @@
-use color_eyre::Result;
 use color_eyre::eyre::bail;
+use color_eyre::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -10,7 +10,7 @@ use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 
 use tokio::fs;
-use tokio::io::{ AsyncReadExt, AsyncWriteExt };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Method {
@@ -42,10 +42,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn fold(
-        headers: Result<HeaderMap>,
-        el: &Self,
-    ) -> Result<HeaderMap> {
+    pub fn fold(headers: Result<HeaderMap>, el: &Self) -> Result<HeaderMap> {
         use reqwest::header::{HeaderName, HeaderValue};
         if let Ok(mut headers) = headers {
             headers.append(
