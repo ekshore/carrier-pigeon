@@ -7,7 +7,7 @@ use log::{debug, error, info, warn};
 use reqwest::header::HeaderMap;
 use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMode};
 
-use std::{io, time::Duration};
+use std::time::Duration;
 
 use state::App;
 
