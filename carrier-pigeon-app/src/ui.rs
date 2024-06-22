@@ -6,7 +6,7 @@ use ratatui::{
     text::Line,
     widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders, Paragraph, Wrap,
+        BorderType, Borders, Clear, Paragraph, Wrap,
     },
 };
 
@@ -89,6 +89,7 @@ pub fn draw(app: &App, frame: &mut Frame) {
             );
             let modal_area = modal_layout(50, 25, frame.size());
 
+            frame.render_widget(Clear, modal_area);
             frame.render_widget(modal, modal_area);
         }
         Modal::Environment => todo!(),
@@ -112,9 +113,11 @@ pub fn draw(app: &App, frame: &mut Frame) {
 
         let logs = Paragraph::new(logs)
             .wrap(Wrap { trim: true })
+            .scroll((0, 0))
             .block(debug_modal)
             .alignment(Alignment::Left);
 
+        frame.render_widget(Clear, area);
         frame.render_widget(logs, area);
     }
 }
