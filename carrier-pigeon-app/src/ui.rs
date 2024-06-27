@@ -104,9 +104,15 @@ pub fn draw(app: &App, frame: &mut Frame) {
                 .log_lines
                 .iter()
                 .filter(|line| line.is_some())
-                .map(|line| line.as_ref().unwrap())
+                .map(|line| line.as_ref().expect("All Nones are filtered out"))
                 .map(|line| line.as_ref().to_owned())
                 .collect()
+        } else {
+            vec![Line::from("SHIT")]
+        };
+
+        let logs = if let Ok(log_buf) = app.debug_logs.lock() {
+            log_buf.display_logs()
         } else {
             vec![Line::from("SHIT")]
         };
@@ -133,8 +139,34 @@ pub mod log {
     use simplelog::{Config, SharedLogger};
 
     pub struct RecordBuff<'a> {
-        pub log_lines: [Option<Box<Line<'a>>>; 256],
+        pub log_lines: [Option<Arc<Line<'a>>>; 256],
         latest_idx: u8,
+    }
+
+    impl<'a> RecordBuff<'a> {
+        pub fn display_logs(&self) -> Vec<Line<'a>> {
+            let mut cur_idx: u8 = if let Some(_) = unsafe {
+                self.log_lines
+                    .get_unchecked((self.latest_idx.wrapping_add(1)) as usize)
+            } {
+                self.latest_idx.wrapping_add(1)
+            } else {
+                0
+            };
+
+            let mut display_logs: Vec<Line<'a>> = Vec::with_capacity(256);
+            let mut empty = unsafe { self.log_lines.get_unchecked(cur_idx as usize).is_none() };
+            while !empty {
+                if let Some(line) = unsafe { self.log_lines.get_unchecked(cur_idx as usize) } {
+                    display_logs.push(line.as_ref().to_owned());
+                    empty = cur_idx == self.latest_idx;
+                    cur_idx = cur_idx.wrapping_add(1);
+                } else {
+                    empty = true;
+                }
+            }
+            display_logs
+        }
     }
 
     pub struct UILogger {
@@ -145,7 +177,7 @@ pub mod log {
 
     impl UILogger {
         pub fn new(level: LevelFilter, config: Config) -> (Self, Arc<Mutex<RecordBuff<'static>>>) {
-            const INIT_LINES: Option<Box<Line<'static>>> = None;
+            const INIT_LINES: Option<Arc<Line<'static>>> = None;
             let latest_idx = 255;
             let log_lines = [INIT_LINES; 256];
             let record_buf = Arc::new(Mutex::new(RecordBuff {
@@ -210,7 +242,7 @@ pub mod log {
             let record_buf = self.record_buf.clone();
             if let Ok(mut record_buf) = record_buf.lock() {
                 let idx = record_buf.latest_idx.wrapping_add(1);
-                record_buf.log_lines[idx as usize] = Some(Box::new(log_line));
+                record_buf.log_lines[idx as usize] = Some(Arc::new(log_line));
                 record_buf.latest_idx = idx;
             };
         }
