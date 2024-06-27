@@ -35,7 +35,7 @@ enum Message {
 async fn main() -> Result<()> {
     errors::install_hooks()?;
     let config = simplelog::ConfigBuilder::new().build();
-    let (ui_logger, logs) = ui::log::UILogger::new(LevelFilter::Debug, config.clone());
+    let (ui_logger, logs) = ui::logging::UILogger::new(LevelFilter::Debug, config.clone());
     let _logger = CombinedLogger::init(vec![
         TermLogger::new(
             LevelFilter::Off,

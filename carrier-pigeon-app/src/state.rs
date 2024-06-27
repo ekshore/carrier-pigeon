@@ -35,12 +35,12 @@ pub struct App<'a> {
     pub requests: Vec<Request>,
     pub running: bool,
     // Debugging
-    pub debug_logs: Arc<Mutex<ui::log::RecordBuff<'a>>>,
+    pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,
 }
 
 impl<'a> App<'a> {
-    pub fn new(debug_logs: Arc<Mutex<ui::log::RecordBuff<'a>>>) -> Self {
+    pub fn new(debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>) -> Self {
         App {
             mode: Mode::default(),
             active_modal: Modal::default(),

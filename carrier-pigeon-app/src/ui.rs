@@ -128,7 +128,7 @@ pub fn draw(app: &App, frame: &mut Frame) {
     }
 }
 
-pub mod log {
+pub mod logging {
     use std::sync::{Arc, Mutex};
 
     use log::{Level, LevelFilter, Log};
@@ -252,7 +252,7 @@ pub mod log {
 
     #[cfg(test)]
     mod tests {
-        use crate::ui::log::*;
+        use crate::ui::logging::*;
         use log::{Level, Metadata, Record};
         use simplelog::ConfigBuilder;
 
