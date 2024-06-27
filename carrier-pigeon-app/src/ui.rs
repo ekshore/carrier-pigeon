@@ -1,4 +1,5 @@
 use crate::state::*;
+use log::debug;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
@@ -100,31 +101,27 @@ pub fn draw(app: &App, frame: &mut Frame) {
         let area = modal_layout(75, 50, frame.size());
 
         let logs = if let Ok(log_buf) = app.debug_logs.lock() {
-            log_buf
-                .log_lines
-                .iter()
-                .filter(|line| line.is_some())
-                .map(|line| line.as_ref().expect("All Nones are filtered out"))
-                .map(|line| line.as_ref().to_owned())
-                .collect()
-        } else {
-            vec![Line::from("SHIT")]
-        };
-
-        let logs = if let Ok(log_buf) = app.debug_logs.lock() {
             log_buf.display_logs()
         } else {
             vec![Line::from("SHIT")]
         };
 
-        let logs = Paragraph::new(logs)
+        let log_paragraph = Paragraph::new(logs)
             .wrap(Wrap { trim: true })
-            .scroll((0, 0))
             .block(debug_modal)
             .alignment(Alignment::Left);
 
+        let line_count = log_paragraph.line_count(area.width) as u16;
+        let scroll_offset = if line_count > area.height {
+            line_count - area.height
+        } else {
+            0
+        };
+
+        let log_paragraph = log_paragraph.scroll((scroll_offset, 0));
+
         frame.render_widget(Clear, area);
-        frame.render_widget(logs, area);
+        frame.render_widget(log_paragraph, area);
     }
 }
 
