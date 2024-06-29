@@ -64,7 +64,7 @@ impl<'a> App<'a> {
 impl<'a> std::fmt::Debug for App<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App")
-            .field("mode:", &format_args!("{:?}", self.mode))
+            .field("mode", &format_args!("{:?}", self.mode))
             .field("active_modal", &format_args!("{:?}", self.active_modal))
             .field("active_pane", &format_args!("{:?}", self.active_pane))
             .field("requests", &format_args!("{:?}", self.requests))
