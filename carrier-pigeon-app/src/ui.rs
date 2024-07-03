@@ -1,5 +1,4 @@
 use crate::state::*;
-use log::debug;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
@@ -81,7 +80,7 @@ pub fn draw(app: &App, frame: &mut Frame) {
 
     match app.active_modal {
         Modal::None => {}
-        Modal::Loading => {
+        Modal::LoadCollection => {
             let modal = title_block(" Load Collection ".into(), Color::White);
             let modal = modal.title(
                 Title::from(" (c) to create / (q) to quit ")
