@@ -56,8 +56,65 @@ impl Header {
     }
 }
 
+pub struct RequestBuilder<N, M, U> {
+    pub name: N,
+    pub method: M,
+    pub url: U,
+}
+
+pub struct NoName;
+pub struct Name(String);
+
+pub struct NoMethod;
+pub struct HasMethod(Method);
+
+pub struct NoUrl;
+pub struct Url(String);
+
+impl<N, M, U> RequestBuilder<N, M, U> {
+    pub fn name(self, name: String) -> RequestBuilder<Name, M, U> {
+        RequestBuilder::<Name, M, U> {
+            name: Name(name),
+            method: self.method,
+            url: self.url,
+        }
+    }
+
+    pub fn method(self, method: Method) -> RequestBuilder<N, HasMethod, U> {
+        RequestBuilder::<N, HasMethod, U> {
+            name: self.name,
+            method: HasMethod(method),
+            url: self.url,
+        }
+    }
+
+    pub fn url(self, url: String) -> RequestBuilder<N, M, Url> {
+        RequestBuilder::<N, M, Url> {
+            name: self.name,
+            method: self.method,
+            url: Url(url),
+        }
+    }
+}
+
+impl RequestBuilder<Name, HasMethod, Url> {
+    pub fn build(self) -> Request {
+        Request {
+            name: self.name.0,
+            protocol: None,
+            url: self.url.0,
+            method: self.method.0,
+            headers: vec![],
+            body: None,
+            path_params: None,
+            query_params: None,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Request {
+    pub name: String,
     pub protocol: Option<Protocol>,
     pub url: String,
     pub method: Method,
@@ -68,15 +125,11 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(method: Method, url: String) -> Self {
-        Request {
-            protocol: None,
-            url,
-            method,
-            headers: vec![],
-            body: None,
-            path_params: None,
-            query_params: None,
+    pub fn builder() -> RequestBuilder<NoName, NoMethod, NoUrl> {
+        RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
         }
     }
 
@@ -137,6 +190,22 @@ impl Request {
         let mut file = fs::File::open(file_path).await?;
         let mut buf = String::new();
         let bytes_read = file.read_to_string(&mut buf).await?;
+        debug!("{} bytes read from file", bytes_read);
+        let request: Self = serde_json::from_str(&buf)?;
+        debug!("Request read from file {:#?}", request);
+        Ok(request)
+    }
+
+    pub fn from_file_sync(file_path: PathBuf) -> Result<Self> {
+        use color_eyre::eyre::WrapErr;
+        use std::io::Read;
+        info!("Reading single request from file");
+        let mut file = std::fs::File::open(&file_path).wrap_err_with(|| {
+            let path_str: String = file_path.into_os_string().into_string().unwrap();
+            format!("File path: {}", path_str)
+        })?;
+        let mut buf = String::new();
+        let bytes_read = file.read_to_string(&mut buf)?;
         debug!("{} bytes read from file", bytes_read);
         let request: Self = serde_json::from_str(&buf)?;
         debug!("Request read from file {:#?}", request);

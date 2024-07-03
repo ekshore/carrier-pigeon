@@ -1,11 +1,11 @@
 use color_eyre::eyre::{bail, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 #[allow(unused_imports)]
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 #[allow(unused_imports)]
 use reqwest::header::HeaderMap;
 use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMode};
-use std::time::Duration;
+use std::{env, fs, path::PathBuf, time::Duration};
 use tokio::sync::mpsc;
 
 mod errors;
@@ -14,18 +14,24 @@ mod state;
 mod tui;
 mod ui;
 
-use crate::state::{App, Mode};
+use crate::{
+    model::Request,
+    state::{App, Mode},
+};
 
 #[allow(dead_code)]
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 enum Message {
     Crash(String),
+    LoadCollection(PathBuf),
     LoadRequest(String),
     Input(char),
     ModeRequest(Mode),
+    NewCollection,
     Quit,
     RawKeyEvent(KeyEvent),
+    SaveCollection,
     Start,
     ToggleDebug,
 }
@@ -48,7 +54,7 @@ async fn main() -> Result<()> {
     let mut tui = tui::init()?;
     let mut app = App::new(logs);
 
-    let (event_tx, mut event_rx) = mpsc::channel::<Option<Message>>(50);
+    let (event_tx, mut event_rx) = mpsc::channel::<Option<Message>>(100);
     event_tx.send(Some(Message::Start)).await?;
 
     let event_thread_tx = event_tx.clone();
@@ -92,7 +98,7 @@ async fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
 }
 
 fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
-    debug!("Start update app state: {:?}", &app);
+    trace!("Start update app state: {:?}", &app);
     let msg = if let Message::RawKeyEvent(event) = msg {
         let msg = match app.mode {
             Mode::Insert => handle_insert_key(event),
@@ -118,18 +124,88 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             app.mode = mode;
             None
         }
+        Message::NewCollection => {
+            debug!("Creating new collection");
+            let mut coll = crate::state::Collection::default();
+            let request = Request::from_file_sync("./request.json".into())?;
+            coll.requests.push(request);
+            app.collection = Some(coll);
+            None
+        }
         Message::Quit => {
-            app.exit();
+            app.running = false;
+            update(app, Message::SaveCollection)?;
+            None
+        }
+        Message::SaveCollection => {
+            info!("Saving current collection");
+            let mut wd = env::current_dir()?;
+            wd.push(".pigeon");
+            fs::create_dir_all(&wd)?;
+
+            let ser_collection = if let Some(coll) = &app.collection {
+                coll.serialize()
+            } else {
+                bail!("Attempted to serialize a none collection");
+            };
+
+            wd.push("requests");
+            fs::create_dir(&wd)?;
+            ser_collection.requests.keys().for_each(|req_key| {
+                wd.push(req_key.clone().into_string());
+                let _ = fs::write(
+                    &wd,
+                    ser_collection
+                        .requests
+                        .get(req_key)
+                        .expect("Failed retrieveing from map inside iterator")
+                        .as_bytes(),
+                );
+                wd.pop();
+            });
+            wd.pop();
+
+            wd.push("environments");
+            fs::create_dir(&wd)?;
+            ser_collection.environments.keys().for_each(|env_key| {
+                wd.push(env_key.clone().into_string());
+                let _ = fs::write(
+                    &wd,
+                    ser_collection
+                        .environments
+                        .get(env_key)
+                        .expect("Failed retrieving from map inside iterator")
+                        .as_bytes(),
+                );
+                wd.pop();
+            });
+            wd.pop();
+
+            wd.push("secrets");
+            fs::create_dir(&wd)?;
+            ser_collection.secrets.keys().for_each(|secret_key| {
+                wd.push(secret_key.clone().into_string());
+                let _ = fs::write(
+                    &wd,
+                    ser_collection
+                        .secrets
+                        .get(secret_key)
+                        .expect("Failed retrieving from map inside iterator")
+                        .as_bytes(),
+                );
+                wd.pop();
+            });
+            wd.pop();
             None
         }
         Message::Start => load_application(app)?,
         Message::ToggleDebug => {
-            app.toggle_debug();
+            app.show_debug = !app.show_debug;
             None
         }
         _ => None,
     };
-    debug!("End Update app state: {:?}", &app);
+    trace!("End Update app state: {:?}", &app);
     Ok(msg)
 }
 
@@ -160,6 +236,18 @@ fn handle_insert_key(key_event: KeyEvent) -> Option<Message> {
     }
 }
 
-fn load_application(app: &mut App) -> Result<Option<Message>> {
-    Ok(None)
+fn load_application(_app: &mut App) -> Result<Option<Message>> {
+    debug!("load_application()");
+    let cwd = env::current_dir()?;
+    let collection = fs::read_dir(cwd)?
+        .filter_map(|entry| entry.ok())
+        .find(|entry| entry.file_name() == ".pigeon");
+
+    if let Some(collection) = collection {
+        debug!("Existing collection found");
+        Ok(Some(Message::LoadCollection(collection.path())))
+    } else {
+        debug!("No collection found");
+        Ok(Some(Message::NewCollection))
+    }
 }
