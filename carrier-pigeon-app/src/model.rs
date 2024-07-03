@@ -56,12 +56,6 @@ impl Header {
     }
 }
 
-pub struct RequestBuilder<N, M, U> {
-    pub name: N,
-    pub method: M,
-    pub url: U,
-}
-
 pub struct NoName;
 pub struct Name(String);
 
@@ -71,12 +65,28 @@ pub struct HasMethod(Method);
 pub struct NoUrl;
 pub struct Url(String);
 
+pub struct RequestBuilder<N, M, U> {
+    pub name: N,
+    pub method: M,
+    pub url: U,
+    pub protocol: Option<Protocol>,
+    pub headers: Option<Vec<Header>>,
+    pub body: Option<String>,
+    pub path_params: Option<HashMap<String, String>>,
+    pub query_params: Option<HashMap<String, String>>,
+}
+
 impl<N, M, U> RequestBuilder<N, M, U> {
     pub fn name(self, name: String) -> RequestBuilder<Name, M, U> {
         RequestBuilder::<Name, M, U> {
             name: Name(name),
             method: self.method,
             url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
         }
     }
 
@@ -85,6 +95,11 @@ impl<N, M, U> RequestBuilder<N, M, U> {
             name: self.name,
             method: HasMethod(method),
             url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
         }
     }
 
@@ -93,6 +108,137 @@ impl<N, M, U> RequestBuilder<N, M, U> {
             name: self.name,
             method: self.method,
             url: Url(url),
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn protocol(self, protocol: Protocol) -> RequestBuilder<N, M, U> {
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: Some(protocol),
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn headers(self, headers: Vec<Header>) -> RequestBuilder<N, M, U> {
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: Some(headers),
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn header(self, header: Header) -> RequestBuilder<N, M, U> {
+        let headers = if let Some(mut headers) = self.headers {
+            headers.push(header);
+            headers
+        } else {
+            vec![]
+        };
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: Some(headers),
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn body(self, body: String) -> RequestBuilder<N, M, U> {
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: Some(body),
+            path_params: self.path_params,
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn path_params(self, path_params: HashMap<String, String>) -> RequestBuilder<N, M, U> {
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: Some(path_params),
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn path_param(self, key: String, value: String) -> RequestBuilder<N, M, U> {
+        let path_params = if let Some(mut params) = self.path_params {
+             params.insert(key, value);
+             params
+        } else {
+            let mut params = HashMap::new();
+            params.insert(key, value);
+            params
+        };
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: Some(path_params),
+            query_params: self.query_params,
+        }
+    }
+
+    pub fn query_params(self, query_params: HashMap<String, String>) -> RequestBuilder<N, M, U> {
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: Some(query_params),
+        }
+    }
+
+    pub fn query_param(self, key: String, value: String) -> RequestBuilder<N, M, U> {
+        let query_params = if let Some(mut params) = self.query_params {
+             params.insert(key, value);
+             params
+        } else {
+            let mut params = HashMap::new();
+            params.insert(key, value);
+            params
+        };
+        RequestBuilder::<N, M, U> {
+            name: self.name,
+            method: self.method,
+            url: self.url,
+            protocol: self.protocol,
+            headers: self.headers,
+            body: self.body,
+            path_params: self.path_params,
+            query_params: Some(query_params),
         }
     }
 }
@@ -101,13 +247,13 @@ impl RequestBuilder<Name, HasMethod, Url> {
     pub fn build(self) -> Request {
         Request {
             name: self.name.0,
-            protocol: None,
+            protocol: self.protocol,
             url: self.url.0,
             method: self.method.0,
-            headers: vec![],
-            body: None,
-            path_params: None,
-            query_params: None,
+            headers: self.headers.unwrap_or_else(|| vec![]),
+            body: self.body,
+            path_params: self.path_params,
+            query_params: self.query_params,
         }
     }
 }
@@ -130,6 +276,11 @@ impl Request {
             name: NoName,
             method: NoMethod,
             url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
         }
     }
 
