@@ -371,19 +371,3 @@ impl Request {
         Ok(())
     }
 }
-
-#[derive(Debug, Default)]
-pub struct Collection {
-    pub requests: Vec<Request>,
-    pub environment: HashMap<String, String>,
-}
-
-impl Collection {
-    pub fn new() -> Self {
-        Collection::default()
-    }
-
-    pub fn add_request(&mut self, req: Request) {
-        self.requests.push(req);
-    }
-}
