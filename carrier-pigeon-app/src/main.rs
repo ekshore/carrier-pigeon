@@ -5,7 +5,7 @@ use log::{debug, error, info, trace, warn};
 #[allow(unused_imports)]
 use reqwest::header::HeaderMap;
 use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMode};
-use std::{env, fs, path::PathBuf, time::Duration};
+use std::{collections::HashMap, env, fs, path::PathBuf, time::Duration};
 use tokio::sync::mpsc;
 
 mod errors;
@@ -16,7 +16,7 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Mode},
+    state::{App, Collection, Environment, EnvironmentValues, Mode, Secrets},
 };
 
 #[allow(dead_code)]
@@ -120,6 +120,67 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             debug!("Input character recieved: '{}'", char);
             None
         }
+        Message::LoadCollection(mut path) => {
+            info!("Loading collection at: {}", &path.display().to_string());
+            path.push("requests");
+            let requests: Vec<Request> = if let Ok(request_dir) = fs::read_dir(&path) {
+                request_dir
+                    .filter_map(|dir_entry| dir_entry.ok())
+                    .filter_map(|request_file| fs::read(request_file.path()).ok())
+                    .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
+                    .collect()
+            } else {
+                bail!("Failed to load request dir for collection");
+            };
+            path.pop();
+
+            let sec_path = path.join("secrets");
+            path.push("environments");
+            let environments = if let Ok(env_dir) = fs::read_dir(&path) {
+                env_dir
+                    .filter_map(|dir_entry| dir_entry.ok())
+                    .map(|dir_entry| dir_entry.path())
+                    .filter_map(|file_path| {
+                        let secrets = fs::read(sec_path.join(file_path.file_name().unwrap())).ok();
+                        if let Some(env) = fs::read(&file_path).ok() {
+                            let file_name =
+                                file_path.file_name().unwrap().to_str().unwrap().to_owned();
+                            Some((file_name, env, secrets))
+                        } else {
+                            None
+                        }
+                    })
+                    .filter_map(|(file_name, env, secrets)| {
+                        let env: Option<EnvironmentValues> = serde_json::from_slice(&env).ok();
+                        let secrets: Secrets = if let Some(secs) = secrets {
+                            serde_json::from_slice(&secs).unwrap_or_else(|_| HashMap::new())
+                        } else {
+                            HashMap::new()
+                        };
+
+                        if let Some(values) = env {
+                            Some((file_name, Environment { values, secrets }))
+                        } else {
+                            None
+                        }
+                    })
+                    .fold(HashMap::new(), |mut envs, (name, env)| {
+                        envs.insert(name.to_owned().to_string(), env);
+                        envs
+                    })
+            } else {
+                bail!("Failed reading environment dir for colleciton");
+            };
+            path.pop();
+
+            app.collection = Some(Collection {
+                requests,
+                environments,
+                save_location: Some(path),
+            });
+
+            None
+        }
         Message::ModeRequest(mode) => {
             app.mode = mode;
             None
@@ -150,7 +211,9 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             };
 
             wd.push("requests");
-            fs::create_dir(&wd)?;
+            if !wd.exists() {
+                fs::create_dir(&wd)?;
+            }
             ser_collection.requests.keys().for_each(|req_key| {
                 wd.push(req_key.clone().into_string());
                 let _ = fs::write(
@@ -166,7 +229,9 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             wd.pop();
 
             wd.push("environments");
-            fs::create_dir(&wd)?;
+            if !wd.exists() {
+                fs::create_dir(&wd)?;
+            }
             ser_collection.environments.keys().for_each(|env_key| {
                 wd.push(env_key.clone().into_string());
                 let _ = fs::write(
@@ -182,7 +247,9 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             wd.pop();
 
             wd.push("secrets");
-            fs::create_dir(&wd)?;
+            if !wd.exists() {
+                fs::create_dir(&wd)?;
+            }
             ser_collection.secrets.keys().for_each(|secret_key| {
                 wd.push(secret_key.clone().into_string());
                 let _ = fs::write(
