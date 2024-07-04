@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum Method {
     GET,
     POST,
@@ -27,7 +27,7 @@ impl From<Method> for reqwest::Method {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum Protocol {
     Http,
     Tcp,
@@ -35,7 +35,7 @@ pub enum Protocol {
     Grpc,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Header {
     name: Box<str>,
     value: Box<str>,
@@ -56,15 +56,22 @@ impl Header {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct NoName;
+#[derive(Debug, PartialEq)]
 pub struct Name(String);
 
+#[derive(Debug, PartialEq)]
 pub struct NoMethod;
+#[derive(Debug, PartialEq)]
 pub struct HasMethod(Method);
 
+#[derive(Debug, PartialEq)]
 pub struct NoUrl;
+#[derive(Debug, PartialEq)]
 pub struct Url(String);
 
+#[derive(Debug, PartialEq)]
 pub struct RequestBuilder<N, M, U> {
     pub name: N,
     pub method: M,
@@ -189,8 +196,8 @@ impl<N, M, U> RequestBuilder<N, M, U> {
 
     pub fn path_param(self, key: String, value: String) -> RequestBuilder<N, M, U> {
         let path_params = if let Some(mut params) = self.path_params {
-             params.insert(key, value);
-             params
+            params.insert(key, value);
+            params
         } else {
             let mut params = HashMap::new();
             params.insert(key, value);
@@ -223,8 +230,8 @@ impl<N, M, U> RequestBuilder<N, M, U> {
 
     pub fn query_param(self, key: String, value: String) -> RequestBuilder<N, M, U> {
         let query_params = if let Some(mut params) = self.query_params {
-             params.insert(key, value);
-             params
+            params.insert(key, value);
+            params
         } else {
             let mut params = HashMap::new();
             params.insert(key, value);
@@ -258,7 +265,7 @@ impl RequestBuilder<Name, HasMethod, Url> {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Request {
     pub name: String,
     pub protocol: Option<Protocol>,
@@ -282,58 +289,6 @@ impl Request {
             path_params: None,
             query_params: None,
         }
-    }
-
-    pub fn protocol(mut self, protocol: Protocol) -> Self {
-        self.protocol = Some(protocol);
-        self
-    }
-
-    pub fn headers(mut self, mut headers: Vec<Header>) -> Self {
-        self.headers.append(&mut headers);
-        self
-    }
-
-    pub fn add_header(mut self, header: Header) -> Self {
-        self.headers.push(header);
-        self
-    }
-
-    pub fn body(mut self, body: String) -> Self {
-        self.body = Some(body);
-        self
-    }
-
-    pub fn path_params(mut self, params: HashMap<String, String>) -> Self {
-        self.path_params = Some(params);
-        self
-    }
-
-    pub fn path_param(mut self, key: String, value: String) -> Self {
-        if let Some(mut params) = self.path_params {
-            params.insert(key, value);
-            self.path_params = Some(params);
-        } else {
-            let params = HashMap::from([(key, value)]);
-            self.path_params = Some(params);
-        }
-        self
-    }
-
-    pub fn query_params(mut self, params: HashMap<String, String>) -> Self {
-        self.query_params = Some(params);
-        self
-    }
-
-    pub fn query_param(mut self, key: String, value: String) -> Self {
-        if let Some(mut params) = self.query_params {
-            params.insert(key, value);
-            self.query_params = Some(params);
-        } else {
-            let params = HashMap::from([(key, value)]);
-            self.query_params = Some(params);
-        }
-        self
     }
 
     pub async fn from_file(file_path: PathBuf) -> Result<Self> {
@@ -369,5 +324,220 @@ impl Request {
         info!("Writing to file");
         file.write_all(req_json.as_bytes()).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod request_builder {
+    use super::*;
+
+    #[test]
+    fn test_name() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.name("TestName".to_string());
+        assert_eq!(builder.name, Name("TestName".to_string()));
+    }
+
+    #[test]
+    fn test_method() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.method(Method::GET);
+        assert_eq!(builder.method, HasMethod(Method::GET));
+    }
+
+    #[test]
+    fn test_url() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.url("http://example.com".to_string());
+        assert_eq!(builder.url, Url("http://example.com".to_string()));
+    }
+
+    #[test]
+    fn test_protocol() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.protocol(Protocol::Http);
+        assert_eq!(builder.protocol, Some(Protocol::Http));
+    }
+
+    #[test]
+    fn test_headers() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.headers(vec![Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        }]);
+        assert_eq!(
+            builder.headers,
+            Some(vec![Header {
+                name: "Content-Type".into(),
+                value: "application/json".into()
+            }])
+        );
+    }
+
+    #[test]
+    fn test_body() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let builder = builder.body("body content".to_string());
+        assert_eq!(builder.body, Some("body content".to_string()));
+    }
+
+    #[test]
+    fn test_path_params() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let mut params = HashMap::new();
+        params.insert("key".to_string(), "value".to_string());
+        let builder = builder.path_params(params.clone());
+        assert_eq!(builder.path_params, Some(params));
+    }
+
+    #[test]
+    fn test_query_params() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let mut params = HashMap::new();
+        params.insert("key".to_string(), "value".to_string());
+        let builder = builder.query_params(params.clone());
+        assert_eq!(builder.query_params, Some(params));
+    }
+
+    #[test]
+    fn test_build() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let request = builder
+            .name("TestName".to_string())
+            .method(Method::GET)
+            .url("http://example.com".to_string())
+            .protocol(Protocol::Http)
+            .headers(vec![Header {
+                name: "Content-Type".into(),
+                value: "application/json".into(),
+            }])
+            .body("body content".to_string())
+            .path_params({
+                let mut params = HashMap::new();
+                params.insert("key".to_string(), "value".to_string());
+                params
+            })
+            .query_params({
+                let mut params = HashMap::new();
+                params.insert("key".to_string(), "value".to_string());
+                params
+            })
+            .build();
+
+        assert_eq!(
+            request,
+            Request {
+                name: "TestName".to_string(),
+                protocol: Some(Protocol::Http),
+                url: "http://example.com".to_string(),
+                method: Method::GET,
+                headers: vec![Header {
+                    name: "Content-Type".into(),
+                    value: "application/json".into()
+                }],
+                body: Some("body content".to_string()),
+                path_params: Some({
+                    let mut params = HashMap::new();
+                    params.insert("key".to_string(), "value".to_string());
+                    params
+                }),
+                query_params: Some({
+                    let mut params = HashMap::new();
+                    params.insert("key".to_string(), "value".to_string());
+                    params
+                }),
+            }
+        );
     }
 }
