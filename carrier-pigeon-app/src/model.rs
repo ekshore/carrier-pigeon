@@ -328,6 +328,99 @@ impl Request {
 }
 
 #[cfg(test)]
+mod header {
+    use super::*;
+    use reqwest::header::HeaderMap;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    pub struct Header {
+        name: Box<str>,
+        value: Box<str>,
+    }
+
+    impl Header {
+        pub fn fold(headers: Result<HeaderMap, Box<dyn std::error::Error>>, el: &Self) -> Result<HeaderMap, Box<dyn std::error::Error>> {
+            use reqwest::header::{HeaderName, HeaderValue};
+            if let Ok(mut headers) = headers {
+                headers.append(
+                    HeaderName::from_bytes(el.name.as_bytes())?,
+                    HeaderValue::from_bytes(el.value.as_bytes())?,
+                );
+                Ok(headers)
+            } else {
+                Err("Invalid Headers".into())
+            }
+        }
+    }
+
+    #[test]
+    fn test_header_creation() {
+        let header = Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        };
+
+        assert_eq!(header.name.as_ref(), "Content-Type");
+        assert_eq!(header.value.as_ref(), "application/json");
+    }
+
+    #[test]
+    fn test_fold_valid_headers() {
+        let header = Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        };
+
+        let headers = HeaderMap::new();
+        let result = Header::fold(Ok(headers), &header);
+
+        assert!(result.is_ok());
+        let headers = result.unwrap();
+        assert_eq!(headers.get("Content-Type").unwrap(), "application/json");
+    }
+
+    #[test]
+    fn test_fold_invalid_headers() {
+        let header = Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        };
+
+        let result = Header::fold(Err("Error".into()), &header);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fold_invalid_header_name() {
+        let header = Header {
+            name: "\0Content-Type".into(),
+            value: "application/json".into(),
+        };
+
+        let headers = HeaderMap::new();
+        let result = Header::fold(Ok(headers), &header);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fold_invalid_header_value() {
+        let header = Header {
+            name: "Content-Type".into(),
+            value: "\0application/json".into(),
+        };
+
+        let headers = HeaderMap::new();
+        let result = Header::fold(Ok(headers), &header);
+
+        assert!(result.is_err());
+    }
+}
+
+
+#[cfg(test)]
 mod request_builder {
     use super::*;
 
