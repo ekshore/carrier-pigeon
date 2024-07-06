@@ -1,4 +1,4 @@
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{bail, OptionExt, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
@@ -17,7 +17,7 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Collection, Mode, SerializedCollection},
+    state::{App, Collection, Mode, Secret, SerializedCollection},
 };
 
 #[allow(dead_code)]
@@ -32,6 +32,7 @@ enum Message {
     Quit,
     RawKeyEvent(KeyEvent),
     SaveCollection,
+    SaveGlobal,
     Start,
     ToggleDebug,
 }
@@ -59,7 +60,7 @@ async fn main() -> Result<()> {
                 .expect("Failed to open working directory")
                 .join(".pigeon"),
         )
-        .global_state(GlobalState {})
+        .global_state(load_global_state()?)
         .build();
 
     let (event_tx, mut event_rx) = mpsc::channel::<Option<Message>>(100);
@@ -87,6 +88,37 @@ async fn main() -> Result<()> {
 
     tui::restore()?;
 
+    Ok(())
+}
+
+fn load_global_state() -> Result<GlobalState> {
+    use env_home::env_home_dir;
+    let app_dir = env_home_dir().ok_or_eyre("Failed to open Home directory")?;
+    let app_dir = app_dir.join(".local/share/.carrier-pigeon");
+    if app_dir.is_dir() {
+        debug!("Loading global state from: {}", app_dir.display());
+        if let Ok(secrets) = fs::read(app_dir.join("secrets")) {
+            let secrets: Vec<Secret> = serde_json::from_slice(&secrets)?;
+            Ok(GlobalState { secrets })
+        } else {
+            bail!("Failed to load secrets file");
+        }
+    } else {
+        info!("Global directory does not exist creating new");
+        fs::create_dir_all(app_dir)?;
+        Ok(GlobalState { secrets: vec![] })
+    }
+}
+
+fn save_global_state(state: &GlobalState) -> Result<()> {
+    use env_home::env_home_dir;
+    let app_dir = env_home_dir().ok_or_eyre("Failed to open home directory")?;
+    let app_dir = app_dir.join(".local/share/.carrier-pigeon");
+    if app_dir.is_dir() {
+        debug!("Saving global state to: {}", app_dir.display());
+        let secrets: Vec<u8> = serde_json::to_vec(&state.secrets)?;
+        fs::write(app_dir.join("secrets"), secrets)?;
+    }
     Ok(())
 }
 
@@ -191,6 +223,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         Message::Quit => {
             app.running = false;
             update(app, Message::SaveCollection)?;
+            update(app, Message::SaveGlobal)?;
             None
         }
         Message::SaveCollection => {
@@ -233,6 +266,10 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                 );
             });
 
+            None
+        }
+        Message::SaveGlobal => {
+            save_global_state(&app.global)?;
             None
         }
         Message::Start => load_application(app)?,
