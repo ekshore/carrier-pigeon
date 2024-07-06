@@ -259,7 +259,7 @@ impl RequestBuilder<Name, HasMethod, Url> {
             protocol: self.protocol,
             url: self.url.0,
             method: self.method.0,
-            headers: self.headers.unwrap_or_else(|| vec![]),
+            headers: self.headers.unwrap_or_default(),
             body: self.body,
             path_params: self.path_params,
             query_params: self.query_params,

@@ -141,10 +141,12 @@ pub mod logging {
 
     impl<'a> RecordBuff<'a> {
         pub fn display_logs(&self) -> Vec<Line<'a>> {
-            let mut cur_idx: u8 = if let Some(_) = unsafe {
+            let mut cur_idx: u8 = if unsafe {
                 self.log_lines
                     .get_unchecked((self.latest_idx.wrapping_add(1)) as usize)
-            } {
+            }
+            .is_some()
+            {
                 self.latest_idx.wrapping_add(1)
             } else {
                 0
@@ -288,7 +290,7 @@ pub mod logging {
             if let Ok(logs) = logs.lock() {
                 assert_eq!(logs.latest_idx, 2);
             } else {
-                assert!(false)
+                panic!("lockis poisoned");
             };
         }
 
@@ -296,7 +298,7 @@ pub mod logging {
         fn overflow_insertion() {
             let (logger, logs) = UILogger::new(LevelFilter::Debug, ConfigBuilder::new().build());
 
-            let _ = (0..256)
+            (0..256)
                 .map(|_| {
                     Record::builder()
                         .metadata(Metadata::builder().level(Level::Debug).build())
@@ -328,7 +330,7 @@ pub mod logging {
                     .contains("OVERFLOW"));
                 assert_eq!(logs.latest_idx, 0);
             } else {
-                assert!(false);
+                panic!("lock is poisoned");
             };
         }
     }

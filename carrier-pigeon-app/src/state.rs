@@ -183,7 +183,7 @@ impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
             collection: None,
             running: true,
             work_dir: self.work_dir.0,
-            global: self.global_state.0,
+            _global: self.global_state.0,
             debug_logs: self.logs.0,
             show_debug: false,
         }
@@ -197,7 +197,7 @@ pub struct App<'a> {
     pub collection: Option<Collection>,
     pub running: bool,
     pub work_dir: PathBuf,
-    pub global: GlobalState,
+    pub _global: GlobalState,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,

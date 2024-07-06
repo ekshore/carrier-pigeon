@@ -93,11 +93,10 @@ async fn main() -> Result<()> {
 async fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
     loop {
         let msg = if event::poll(Duration::from_millis(100))? {
-            let msg = match event::read()? {
+            match event::read()? {
                 Event::Key(key_event) => Some(Message::RawKeyEvent(key_event)),
                 _ => None,
-            };
-            msg
+            }
         } else {
             None
         };
