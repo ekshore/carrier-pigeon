@@ -4,6 +4,7 @@ use crate::ui;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    env,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -65,7 +66,10 @@ impl Collection {
         let requests: HashMap<Box<str>, Box<[u8]>> =
             self.requests.iter().fold(HashMap::new(), |mut reqs, req| {
                 if let Ok(ser_req) = serde_json::to_vec(req) {
-                    reqs.insert(req.name.clone().into_boxed_str(), ser_req.into_boxed_slice());
+                    reqs.insert(
+                        req.name.clone().into_boxed_str(),
+                        ser_req.into_boxed_slice(),
+                    );
                 }
                 reqs
             });
@@ -75,7 +79,10 @@ impl Collection {
                 .iter()
                 .fold(HashMap::new(), |mut envs, env| {
                     if let Ok(ser_env) = serde_json::to_vec(env) {
-                        envs.insert(env.name.clone().into_boxed_str(), ser_env.into_boxed_slice());
+                        envs.insert(
+                            env.name.clone().into_boxed_str(),
+                            ser_env.into_boxed_slice(),
+                        );
                     }
                     envs
                 });
@@ -95,7 +102,7 @@ impl Collection {
                     ser_coll
                         .requests
                         .get(key)
-                        .expect("Failed to retrieve from map inside key iterator")
+                        .expect("Failed to retrieve from map inside key iterator"),
                 )
                 .ok()
             })
@@ -108,7 +115,7 @@ impl Collection {
                     ser_coll
                         .environments
                         .get(key)
-                        .expect("Failed to retrieve from map inside key iterator")
+                        .expect("Failed to retrieve from map inside key iterator"),
                 ) {
                     Some(Environment {
                         name: key.to_string(),
@@ -134,6 +141,7 @@ pub struct App<'a> {
     pub active_pane: Pane,
     pub collection: Option<Collection>,
     pub running: bool,
+    pub work_dir: PathBuf,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,
@@ -147,6 +155,9 @@ impl<'a> App<'a> {
             active_pane: Pane::default(),
             collection: None,
             running: true,
+            work_dir: env::current_dir()
+                .expect("failed to get working directory")
+                .join(".pigeon"),
             debug_logs,
             show_debug: false,
         }

@@ -187,22 +187,13 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SaveCollection => {
             info!("Saving current collection");
-            let (ser_collection, wd) = if let Some(coll) = &app.collection {
-                let ser = coll.serialize();
-                let location = if let Some(local) = &coll.save_location {
-                    local.clone()
-                } else {
-                    let mut wd = env::current_dir()?;
-                    wd.push(".pigeon");
-                    fs::create_dir_all(&wd)?;
-                    wd
-                };
-                (ser, location)
+            let ser_collection = if let Some(coll) = &app.collection {
+                coll.serialize()
             } else {
                 bail!("Attempted to serialize a none collection");
             };
 
-            let req_dir = wd.join("requests");
+            let req_dir = app.work_dir.join("requests");
             if !req_dir.exists() {
                 fs::create_dir(&req_dir)?;
             }
@@ -216,7 +207,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                 );
             });
 
-            let env_dir = wd.join("environments");
+            let env_dir = app.work_dir.join("environments");
             if !env_dir.exists() {
                 fs::create_dir(&env_dir)?;
             }
@@ -270,18 +261,11 @@ fn handle_insert_key(key_event: KeyEvent) -> Option<Message> {
     }
 }
 
-fn load_application(_app: &mut App) -> Result<Option<Message>> {
+fn load_application(app: &mut App) -> Result<Option<Message>> {
     debug!("load_application()");
-    let cwd = env::current_dir()?;
-    let collection = fs::read_dir(cwd)?
-        .filter_map(|entry| entry.ok())
-        .find(|entry| entry.file_name() == ".pigeon");
-
-    if let Some(collection) = collection {
-        debug!("Existing collection found");
-        Ok(Some(Message::LoadCollection(collection.path())))
+    if app.work_dir.as_path().exists() {
+        Ok(Some(Message::LoadCollection(app.work_dir.clone())))
     } else {
-        debug!("No collection found");
         Ok(Some(Message::NewCollection))
     }
 }
