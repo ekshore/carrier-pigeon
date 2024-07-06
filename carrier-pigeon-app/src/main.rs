@@ -16,7 +16,7 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Collection, Environment, EnvironmentValues, Mode, Secrets},
+    state::{App, Collection, Mode, SerializedCollection},
 };
 
 #[allow(dead_code)]
@@ -25,7 +25,6 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 enum Message {
     Crash(String),
     LoadCollection(PathBuf),
-    LoadRequest(String),
     Input(char),
     ModeRequest(Mode),
     NewCollection,
@@ -120,64 +119,52 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             debug!("Input character recieved: '{}'", char);
             None
         }
-        Message::LoadCollection(mut path) => {
+        Message::LoadCollection(path) => {
             info!("Loading collection at: {}", &path.display().to_string());
-            path.push("requests");
-            let requests: Vec<Request> = if let Ok(request_dir) = fs::read_dir(&path) {
-                request_dir
-                    .filter_map(|dir_entry| dir_entry.ok())
-                    .filter_map(|request_file| fs::read(request_file.path()).ok())
-                    .filter_map(|bytes| serde_json::from_slice(&bytes).ok())
-                    .collect()
-            } else {
-                bail!("Failed to load request dir for collection");
-            };
-            path.pop();
 
-            let sec_path = path.join("secrets");
-            path.push("environments");
-            let environments = if let Ok(env_dir) = fs::read_dir(&path) {
-                env_dir
-                    .filter_map(|dir_entry| dir_entry.ok())
-                    .map(|dir_entry| dir_entry.path())
-                    .filter_map(|file_path| {
-                        let secrets = fs::read(sec_path.join(file_path.file_name().unwrap())).ok();
-                        if let Some(env) = fs::read(&file_path).ok() {
-                            let file_name =
-                                file_path.file_name().unwrap().to_str().unwrap().to_owned();
-                            Some((file_name, env, secrets))
-                        } else {
-                            None
-                        }
-                    })
-                    .filter_map(|(file_name, env, secrets)| {
-                        let env: Option<EnvironmentValues> = serde_json::from_slice(&env).ok();
-                        let secrets: Secrets = if let Some(secs) = secrets {
-                            serde_json::from_slice(&secs).unwrap_or_else(|_| HashMap::new())
-                        } else {
-                            HashMap::new()
-                        };
+            let request_dir = path.join("requests");
+            let requests: HashMap<Box<str>, Box<[u8]>> =
+                if let Ok(files) = fs::read_dir(request_dir) {
+                    files.filter_map(|dir_entry| dir_entry.ok()).fold(
+                        HashMap::new(),
+                        |mut reqs, file| {
+                            let data = fs::read(file.path()).unwrap();
+                            reqs.insert(
+                                file.file_name().into_string().unwrap().into_boxed_str(),
+                                data.into_boxed_slice(),
+                            );
+                            reqs
+                        },
+                    )
+                } else {
+                    bail!("Failed to load requests from collection directory");
+                };
 
-                        if let Some(values) = env {
-                            Some((file_name, Environment { values, secrets }))
-                        } else {
-                            None
-                        }
-                    })
-                    .fold(HashMap::new(), |mut envs, (name, env)| {
-                        envs.insert(name.to_owned().to_string(), env);
-                        envs
-                    })
-            } else {
-                bail!("Failed reading environment dir for colleciton");
-            };
-            path.pop();
+            let env_dir = path.join("environments");
+            let environments: HashMap<Box<str>, Box<[u8]>> =
+                if let Ok(files) = fs::read_dir(env_dir) {
+                    files.filter_map(|dir_entry| dir_entry.ok()).fold(
+                        HashMap::new(),
+                        |mut envs, file| {
+                            let data = fs::read(file.path()).unwrap();
+                            envs.insert(
+                                file.file_name().into_string().unwrap().into_boxed_str(),
+                                data.into_boxed_slice(),
+                            );
+                            envs
+                        },
+                    )
+                } else {
+                    bail!("Failed to load environments from collection directory");
+                };
 
-            app.collection = Some(Collection {
-                requests,
-                environments,
-                save_location: Some(path),
-            });
+            app.collection = Some(Collection::deserialize(
+                path,
+                SerializedCollection {
+                    requests,
+                    environments,
+                },
+            ));
 
             None
         }
@@ -210,59 +197,34 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                 bail!("Attempted to serialize a none collection");
             };
 
-            wd.push("requests");
-            if !wd.exists() {
-                fs::create_dir(&wd)?;
+            let req_dir = wd.join("requests");
+            if !req_dir.exists() {
+                fs::create_dir(&req_dir)?;
             }
             ser_collection.requests.keys().for_each(|req_key| {
-                wd.push(req_key.clone().into_string());
                 let _ = fs::write(
-                    &wd,
+                    req_dir.join(req_key.clone().into_string()),
                     ser_collection
                         .requests
                         .get(req_key)
-                        .expect("Failed retrieveing from map inside iterator")
-                        .as_bytes(),
+                        .expect("Failed retrieveing from map inside iterator"),
                 );
-                wd.pop();
             });
-            wd.pop();
 
-            wd.push("environments");
-            if !wd.exists() {
-                fs::create_dir(&wd)?;
+            let env_dir = wd.join("environments");
+            if !env_dir.exists() {
+                fs::create_dir(&env_dir)?;
             }
             ser_collection.environments.keys().for_each(|env_key| {
-                wd.push(env_key.clone().into_string());
                 let _ = fs::write(
-                    &wd,
+                    env_dir.join(env_key.clone().into_string()),
                     ser_collection
                         .environments
                         .get(env_key)
-                        .expect("Failed retrieving from map inside iterator")
-                        .as_bytes(),
+                        .expect("Failed retrieving from map inside iterator"),
                 );
-                wd.pop();
             });
-            wd.pop();
 
-            wd.push("secrets");
-            if !wd.exists() {
-                fs::create_dir(&wd)?;
-            }
-            ser_collection.secrets.keys().for_each(|secret_key| {
-                wd.push(secret_key.clone().into_string());
-                let _ = fs::write(
-                    &wd,
-                    ser_collection
-                        .secrets
-                        .get(secret_key)
-                        .expect("Failed retrieving from map inside iterator")
-                        .as_bytes(),
-                );
-                wd.pop();
-            });
-            wd.pop();
             None
         }
         Message::Start => load_application(app)?,

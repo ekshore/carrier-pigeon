@@ -33,82 +33,98 @@ pub enum Pane {
     Main,
 }
 
-pub type EnvironmentValues = HashMap<String, String>;
+#[derive(Debug, Deserialize, Serialize)]
+pub enum EnvironmentValue {
+    Secret(String),
+    Value(String),
+}
+
+pub type EnvironmentValues = HashMap<String, EnvironmentValue>;
 pub type Secrets = HashMap<String, String>;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Environment {
+    pub name: String,
     pub values: EnvironmentValues,
-    pub secrets: Secrets,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Collection {
     pub requests: Vec<Request>,
-    pub environments: HashMap<String, Environment>,
+    pub environments: Vec<Environment>,
     #[serde(skip_serializing)]
     pub save_location: Option<PathBuf>,
 }
 
 pub struct SerializedCollection {
-    pub requests: HashMap<Box<str>, Box<str>>,
-    pub environments: HashMap<Box<str>, Box<str>>,
-    pub secrets: HashMap<Box<str>, Box<str>>,
+    pub requests: HashMap<Box<str>, Box<[u8]>>,
+    pub environments: HashMap<Box<str>, Box<[u8]>>,
 }
 
 impl Collection {
     pub fn serialize(&self) -> SerializedCollection {
-        let requests: HashMap<Box<str>, Box<str>> = self
-            .requests
-            .iter()
-            .filter_map(|req| {
-                if let Some(ser_req) = serde_json::to_string(req).ok() {
-                    Some((req.name.clone(), ser_req))
-                } else {
-                    None
+        let requests: HashMap<Box<str>, Box<[u8]>> =
+            self.requests.iter().fold(HashMap::new(), |mut reqs, req| {
+                if let Ok(ser_req) = serde_json::to_vec(req) {
+                    reqs.insert(req.name.clone().into_boxed_str(), ser_req.into_boxed_slice());
                 }
-            })
-            .fold(HashMap::new(), |mut requests, (name, ser_req)| {
-                requests.insert(name.into_boxed_str(), ser_req.into_boxed_str());
-                requests
+                reqs
             });
 
-        let (environments, secrets): (HashMap<Box<str>, Box<str>>, HashMap<Box<str>, Box<str>>) =
+        let environments: HashMap<Box<str>, Box<[u8]>> =
             self.environments
-                .keys()
-                .filter_map(|env_name| {
-                    let ser_env = serde_json::to_string(
-                        self.environments
-                            .get(env_name)
-                            .expect("Failed to unwrap value for key inside of iterator"),
-                    )
-                    .ok();
-                    let ser_sec = serde_json::to_string(
-                        self.environments
-                            .get(env_name)
-                            .expect("Failed to unwrap value for key inside of iterator"),
-                    )
-                    .ok();
-
-                    if let (Some(env), Some(secrets)) = (ser_env, ser_sec) {
-                        Some((env_name, env, secrets))
-                    } else {
-                        None
+                .iter()
+                .fold(HashMap::new(), |mut envs, env| {
+                    if let Ok(ser_env) = serde_json::to_vec(env) {
+                        envs.insert(env.name.clone().into_boxed_str(), ser_env.into_boxed_slice());
                     }
-                })
-                .fold(
-                    (HashMap::new(), HashMap::new()),
-                    |(mut e, mut s), (name, env, secret)| {
-                        e.insert(name.clone().into_boxed_str(), env.into_boxed_str());
-                        s.insert(name.clone().into_boxed_str(), secret.into_boxed_str());
-                        (e, s)
-                    },
-                );
+                    envs
+                });
 
         SerializedCollection {
             requests,
             environments,
-            secrets,
+        }
+    }
+
+    pub fn deserialize(save_location: PathBuf, ser_coll: SerializedCollection) -> Self {
+        let requests: Vec<Request> = ser_coll
+            .requests
+            .keys()
+            .filter_map(|key| {
+                serde_json::from_slice(
+                    ser_coll
+                        .requests
+                        .get(key)
+                        .expect("Failed to retrieve from map inside key iterator")
+                )
+                .ok()
+            })
+            .collect();
+        let environments: Vec<Environment> = ser_coll
+            .environments
+            .keys()
+            .filter_map(|key| {
+                if let Ok(values) = serde_json::from_slice(
+                    ser_coll
+                        .environments
+                        .get(key)
+                        .expect("Failed to retrieve from map inside key iterator")
+                ) {
+                    Some(Environment {
+                        name: key.to_string(),
+                        values,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Collection {
+            requests,
+            environments,
+            save_location: Some(save_location),
         }
     }
 }
