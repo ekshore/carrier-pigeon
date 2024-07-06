@@ -40,7 +40,6 @@ pub enum EnvironmentValue {
 }
 
 pub type EnvironmentValues = HashMap<String, EnvironmentValue>;
-pub type Secrets = HashMap<String, String>;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Environment {

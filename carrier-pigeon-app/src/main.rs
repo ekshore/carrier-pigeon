@@ -187,12 +187,17 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SaveCollection => {
             info!("Saving current collection");
-            let mut wd = env::current_dir()?;
-            wd.push(".pigeon");
-            fs::create_dir_all(&wd)?;
-
-            let ser_collection = if let Some(coll) = &app.collection {
-                coll.serialize()
+            let (ser_collection, wd) = if let Some(coll) = &app.collection {
+                let ser = coll.serialize();
+                let location = if let Some(local) = &coll.save_location {
+                    local.clone()
+                } else {
+                    let mut wd = env::current_dir()?;
+                    wd.push(".pigeon");
+                    fs::create_dir_all(&wd)?;
+                    wd
+                };
+                (ser, location)
             } else {
                 bail!("Attempted to serialize a none collection");
             };
