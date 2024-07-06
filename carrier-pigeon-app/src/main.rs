@@ -187,13 +187,17 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SaveCollection => {
             info!("Saving current collection");
-            let ser_collection = if let Some(coll) = &app.collection {
-                coll.serialize()
+            let (ser_collection, path) = if let Some(coll) = &app.collection {
+                let save_path = match &coll.save_location {
+                    Some(local) => local,
+                    None => &app.work_dir,
+                };
+                (coll.serialize(), save_path)
             } else {
                 bail!("Attempted to serialize a none collection");
             };
 
-            let req_dir = app.work_dir.join("requests");
+            let req_dir = path.join("requests");
             if !req_dir.exists() {
                 fs::create_dir(&req_dir)?;
             }
@@ -207,7 +211,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                 );
             });
 
-            let env_dir = app.work_dir.join("environments");
+            let env_dir = path.join("environments");
             if !env_dir.exists() {
                 fs::create_dir(&env_dir)?;
             }
