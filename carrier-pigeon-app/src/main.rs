@@ -98,7 +98,7 @@ fn load_global_state() -> Result<GlobalState> {
     if app_dir.is_dir() {
         debug!("Loading global state from: {}", app_dir.display());
         if let Ok(secrets) = fs::read(app_dir.join("secrets")) {
-            let secrets: Vec<Secret> = serde_json::from_slice(&secrets)?;
+            let secrets: HashMap<Box<str>, Secret> = serde_json::from_slice(&secrets)?;
             Ok(GlobalState { secrets })
         } else {
             bail!("Failed to load secrets file");
@@ -106,7 +106,7 @@ fn load_global_state() -> Result<GlobalState> {
     } else {
         info!("Global directory does not exist creating new");
         fs::create_dir_all(app_dir)?;
-        Ok(GlobalState { secrets: vec![] })
+        Ok(GlobalState { secrets: HashMap::new() })
     }
 }
 

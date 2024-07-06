@@ -141,7 +141,7 @@ pub enum Secret {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GlobalState {
-    pub secrets: Vec<Secret>,
+    pub secrets: HashMap<Box<str>, Secret>,
 }
 
 pub struct AbsentValue;
