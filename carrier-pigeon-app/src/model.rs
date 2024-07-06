@@ -3,8 +3,7 @@ use color_eyre::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[allow(unused_imports)]
-use log::{debug, error, info, warn};
+use log::{debug, info};
 
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
@@ -14,15 +13,15 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum Method {
-    GET,
-    POST,
+    Get,
+    Post,
 }
 
 impl From<Method> for reqwest::Method {
     fn from(val: Method) -> Self {
         match val {
-            Method::GET => reqwest::Method::GET,
-            Method::POST => reqwest::Method::POST,
+            Method::Get => reqwest::Method::GET,
+            Method::Post => reqwest::Method::POST,
         }
     }
 }
@@ -41,6 +40,7 @@ pub struct Header {
     value: Box<str>,
 }
 
+#[allow(dead_code)]
 impl Header {
     pub fn fold(headers: Result<HeaderMap>, el: &Self) -> Result<HeaderMap> {
         use reqwest::header::{HeaderName, HeaderValue};
@@ -83,6 +83,7 @@ pub struct RequestBuilder<N, M, U> {
     pub query_params: Option<HashMap<String, String>>,
 }
 
+#[allow(dead_code)]
 impl<N, M, U> RequestBuilder<N, M, U> {
     pub fn name(self, name: String) -> RequestBuilder<Name, M, U> {
         RequestBuilder::<Name, M, U> {
@@ -250,6 +251,7 @@ impl<N, M, U> RequestBuilder<N, M, U> {
     }
 }
 
+#[allow(dead_code)]
 impl RequestBuilder<Name, HasMethod, Url> {
     pub fn build(self) -> Request {
         Request {
@@ -277,6 +279,7 @@ pub struct Request {
     pub query_params: Option<HashMap<String, String>>,
 }
 
+#[allow(dead_code)]
 impl Request {
     pub fn builder() -> RequestBuilder<NoName, NoMethod, NoUrl> {
         RequestBuilder {
@@ -454,8 +457,8 @@ mod request_builder {
             query_params: None,
         };
 
-        let builder = builder.method(Method::GET);
-        assert_eq!(builder.method, HasMethod(Method::GET));
+        let builder = builder.method(Method::Get);
+        assert_eq!(builder.method, HasMethod(Method::Get));
     }
 
     #[test]
@@ -588,7 +591,7 @@ mod request_builder {
 
         let request = builder
             .name("TestName".to_string())
-            .method(Method::GET)
+            .method(Method::Get)
             .url("http://example.com".to_string())
             .protocol(Protocol::Http)
             .headers(vec![Header {
@@ -614,7 +617,7 @@ mod request_builder {
                 name: "TestName".to_string(),
                 protocol: Some(Protocol::Http),
                 url: "http://example.com".to_string(),
-                method: Method::GET,
+                method: Method::Get,
                 headers: vec![Header {
                     name: "Content-Type".into(),
                     value: "application/json".into()
