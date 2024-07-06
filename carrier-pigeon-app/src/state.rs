@@ -4,7 +4,6 @@ use crate::ui;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    env,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -135,6 +134,62 @@ impl Collection {
     }
 }
 
+pub struct GlobalState {
+}
+
+pub struct AbsentValue;
+pub struct Logs<'a>(Arc<Mutex<ui::logging::RecordBuff<'a>>>);
+pub struct State(GlobalState);
+pub struct WorkDir(PathBuf);
+
+pub struct AppBuilder<L, G, W> {
+    pub logs: L,
+    pub global_state: G,
+    pub work_dir: W,
+}
+
+impl<'a, L, G, W> AppBuilder<L, G, W> {
+    pub fn logs(self, logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>) -> AppBuilder<Logs, G, W> {
+        AppBuilder::<Logs, G, W> {
+            logs: Logs(logs),
+            global_state: self.global_state,
+            work_dir: self.work_dir,
+        }
+    }
+
+    pub fn global_state(self, state: GlobalState) -> AppBuilder<L, State, W> {
+        AppBuilder::<L, State, W> {
+            logs: self.logs,
+            global_state: State(state),
+            work_dir: self.work_dir,
+        }
+    }
+
+    pub fn work_dir(self, work_dir: PathBuf) -> AppBuilder<L, G, WorkDir> {
+        AppBuilder::<L, G, WorkDir> {
+            logs: self.logs,
+            global_state: self.global_state,
+            work_dir: WorkDir(work_dir),
+        }
+    }
+}
+
+impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
+    pub fn build(self) -> App<'a> {
+        App {
+            mode: Mode::default(),
+            active_modal: Modal::default(),
+            active_pane: Pane::default(),
+            collection: None,
+            running: true,
+            work_dir: self.work_dir.0,
+            global: self.global_state.0,
+            debug_logs: self.logs.0,
+            show_debug: false,
+        }
+    }
+}
+
 pub struct App<'a> {
     pub mode: Mode,
     pub active_modal: Modal,
@@ -142,24 +197,18 @@ pub struct App<'a> {
     pub collection: Option<Collection>,
     pub running: bool,
     pub work_dir: PathBuf,
+    pub global: GlobalState,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,
 }
 
 impl<'a> App<'a> {
-    pub fn new(debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>) -> Self {
-        App {
-            mode: Mode::default(),
-            active_modal: Modal::default(),
-            active_pane: Pane::default(),
-            collection: None,
-            running: true,
-            work_dir: env::current_dir()
-                .expect("failed to get working directory")
-                .join(".pigeon"),
-            debug_logs,
-            show_debug: false,
+    pub fn builder() -> AppBuilder<AbsentValue, AbsentValue, AbsentValue> {
+        AppBuilder::<AbsentValue, AbsentValue, AbsentValue> {
+            logs: AbsentValue,
+            global_state: AbsentValue,
+            work_dir: AbsentValue,
         }
     }
 }

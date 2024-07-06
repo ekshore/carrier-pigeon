@@ -5,6 +5,7 @@ use log::{debug, error, info, trace, warn};
 #[allow(unused_imports)]
 use reqwest::header::HeaderMap;
 use simplelog::{ColorChoice, CombinedLogger, LevelFilter, TermLogger, TerminalMode};
+use state::GlobalState;
 use std::{collections::HashMap, env, fs, path::PathBuf, time::Duration};
 use tokio::sync::mpsc;
 
@@ -51,7 +52,15 @@ async fn main() -> Result<()> {
     ]);
 
     let mut tui = tui::init()?;
-    let mut app = App::new(logs);
+    let mut app = App::builder()
+        .logs(logs)
+        .work_dir(
+            env::current_dir()
+                .expect("Failed to open working directory")
+                .join(".pigeon"),
+        )
+        .global_state(GlobalState {})
+        .build();
 
     let (event_tx, mut event_rx) = mpsc::channel::<Option<Message>>(100);
     event_tx.send(Some(Message::Start)).await?;
