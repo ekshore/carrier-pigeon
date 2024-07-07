@@ -17,7 +17,7 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Collection, Environment, EnvironmentValues, Mode, Secret, SerializedCollection},
+    state::{App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection},
 };
 
 #[allow(dead_code)]
@@ -33,6 +33,8 @@ enum Message {
     RawKeyEvent(KeyEvent),
     SaveCollection,
     SaveGlobal,
+    SelectDown,
+    SelectUp,
     Start,
     ToggleDebug,
 }
@@ -124,7 +126,7 @@ fn save_global_state(state: &GlobalState) -> Result<()> {
 
 async fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
     loop {
-        let msg = if event::poll(Duration::from_millis(100))? {
+        let msg = if event::poll(Duration::from_millis(10))? {
             match event::read()? {
                 Event::Key(key_event) => Some(Message::RawKeyEvent(key_event)),
                 _ => None,
@@ -156,7 +158,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             bail!("{}", message);
         }
         Message::Input(char) => {
-            debug!("Input character recieved: '{}'", char);
+            trace!("Input character recieved: '{}'", char);
             None
         }
         Message::LoadCollection(path) => {
@@ -205,10 +207,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                     environments,
                 },
             ));
-
+            app.req_list_state.select_first();
             None
         }
         Message::ModeRequest(mode) => {
+            trace!("Mode Reqeust: {:?}", mode);
             app.mode = mode;
             None
         }
@@ -225,6 +228,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             Some(Message::SaveCollection)
         }
         Message::Quit => {
+            info!("Quitting...");
             app.running = false;
             update(app, Message::SaveCollection)?;
             update(app, Message::SaveGlobal)?;
@@ -276,11 +280,33 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             None
         }
         Message::SaveGlobal => {
+            info!("Saving global state");
             save_global_state(&app.global)?;
+            None
+        }
+        Message::SelectDown => {
+            trace!("Select Down");
+            match app.active_pane {
+                Pane::Select => app.req_list_state.select_next(),
+                Pane::Request => {},
+                Pane::Response => {},
+                Pane::Url => {},
+            }
+            None
+        }
+        Message::SelectUp => {
+            trace!("Select Up");
+            match app.active_pane {
+                Pane::Select => app.req_list_state.select_previous(),
+                Pane::Request => {},
+                Pane::Response => {},
+                Pane::Url => {},
+            }
             None
         }
         Message::Start => load_application(app)?,
         Message::ToggleDebug => {
+            trace!("Debug Toggle");
             app.show_debug = !app.show_debug;
             None
         }
@@ -294,6 +320,8 @@ fn handle_normal_key(key_event: KeyEvent) -> Option<Message> {
     if key_event.kind == event::KeyEventKind::Press {
         match key_event.code {
             KeyCode::Char('i') => Some(Message::ModeRequest(Mode::Insert)),
+            KeyCode::Char('j') => Some(Message::SelectDown),
+            KeyCode::Char('k') => Some(Message::SelectUp),
             KeyCode::Char('q') => Some(Message::Quit),
             KeyCode::Char('Q') => Some(Message::Quit),
             KeyCode::F(12) => Some(Message::ToggleDebug),

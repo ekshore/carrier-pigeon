@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     terminal::Frame,
-    text::{Line, Span},
+    text::{Line, Span, Text},
     widgets::{
         block::{Block, Position, Title},
         BorderType, Borders, Clear, List, Paragraph, Wrap,
@@ -155,7 +155,6 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     }
 }
 
-use ratatui::text::Text;
 use crate::Request;
 impl<'a> From<&Request> for Text<'a> {
     fn from(value: &Request) -> Self {
