@@ -17,7 +17,7 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Collection, Mode, Secret, SerializedCollection},
+    state::{App, Collection, Environment, EnvironmentValues, Mode, Secret, SerializedCollection},
 };
 
 #[allow(dead_code)]
@@ -74,7 +74,7 @@ async fn main() -> Result<()> {
             bail!("Event thread crashed");
         }
 
-        tui.draw(|frame| ui::draw(&app, frame))?;
+        tui.draw(|frame| ui::draw(&mut app, frame))?;
         while let Some(msg) = event_rx
             .recv()
             .await
@@ -217,8 +217,12 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             let mut coll = crate::state::Collection::default();
             let request = Request::from_file_sync("./request.json".into())?;
             coll.requests.push(request);
+            let mut env_vals: EnvironmentValues = HashMap::new();
+            env_vals.insert("TestValue".into(), state::EnvironmentValue::Value("Some value".into()));
+            coll.environments.push(Environment { name: "TestEnvironment".into(), values: env_vals });
+
             app.collection = Some(coll);
-            None
+            Some(Message::SaveCollection)
         }
         Message::Quit => {
             app.running = false;
@@ -237,6 +241,9 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             } else {
                 bail!("Attempted to serialize a none collection");
             };
+            if !path.exists() {
+                fs::create_dir_all(path)?;
+            }
 
             let req_dir = path.join("requests");
             if !req_dir.exists() {

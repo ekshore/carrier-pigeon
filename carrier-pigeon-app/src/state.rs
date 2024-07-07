@@ -1,6 +1,7 @@
 use crate::model::Request;
 use crate::ui;
 
+use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -183,6 +184,9 @@ impl<'a, L, G, W> AppBuilder<L, G, W> {
 
 impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
     pub fn build(self) -> App<'a> {
+        let mut req_list_state = ListState::default();
+        *req_list_state.offset_mut() = 0;
+        req_list_state.select(Some(0));
         App {
             mode: Mode::default(),
             active_modal: Modal::default(),
@@ -191,6 +195,7 @@ impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
             running: true,
             work_dir: self.work_dir.0,
             global: self.global_state.0,
+            req_list_state,
             debug_logs: self.logs.0,
             show_debug: false,
         }
@@ -205,6 +210,7 @@ pub struct App<'a> {
     pub running: bool,
     pub work_dir: PathBuf,
     pub global: GlobalState,
+    pub req_list_state: ListState,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,
