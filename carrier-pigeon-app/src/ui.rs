@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     terminal::Frame,
-    text::Line,
+    text::{Line, Span},
     widgets::{
         block::{Block, Position, Title},
         BorderType, Borders, Clear, List, Paragraph, Wrap,
@@ -94,7 +94,8 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .block(request_select_block)
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>")
-        .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
+        .repeat_highlight_symbol(true)
+        .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
         .direction(ratatui::widgets::ListDirection::TopToBottom);
 
     let request_details_block = title_block(" Request ".into(), Color::White);
@@ -158,7 +159,16 @@ use ratatui::text::Text;
 use crate::Request;
 impl<'a> From<&Request> for Text<'a> {
     fn from(value: &Request) -> Self {
-        value.name.clone().into()
+        use crate::model::Method;
+        let method_style = match value.method {
+            Method::Get => Style::new().green().bold(),
+            Method::Post => Style::new().magenta().bold(),
+        };
+        Line::from(vec![
+            Span::styled(format!("{:5}", value.method.to_string()), method_style),
+            Span::raw(": "),
+            Span::raw(value.name.clone())
+        ]).into()
     }
 }
 

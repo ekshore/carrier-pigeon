@@ -1,6 +1,7 @@
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use std::collections::HashMap;
+use std::fmt;
 use std::path::PathBuf;
 
 use log::{debug, info};
@@ -15,6 +16,15 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 pub enum Method {
     Get,
     Post,
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::Get => "GET",
+            Self::Post => "POST",
+        })
+    }
 }
 
 impl From<Method> for reqwest::Method {
@@ -343,7 +353,10 @@ mod header {
     }
 
     impl Header {
-        pub fn fold(headers: Result<HeaderMap, Box<dyn std::error::Error>>, el: &Self) -> Result<HeaderMap, Box<dyn std::error::Error>> {
+        pub fn fold(
+            headers: Result<HeaderMap, Box<dyn std::error::Error>>,
+            el: &Self,
+        ) -> Result<HeaderMap, Box<dyn std::error::Error>> {
             use reqwest::header::{HeaderName, HeaderValue};
             if let Ok(mut headers) = headers {
                 headers.append(
@@ -421,7 +434,6 @@ mod header {
         assert!(result.is_err());
     }
 }
-
 
 #[cfg(test)]
 mod request_builder {
