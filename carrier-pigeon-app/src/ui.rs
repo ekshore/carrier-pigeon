@@ -121,7 +121,7 @@ struct ScreenLayout {
     url_area: Rect,
     req_area: Rect,
     res_area: Rect,
-    help_area: Rect,
+    _help_area: Rect,
 }
 
 fn get_layout(frame: &Frame) -> ScreenLayout {
@@ -150,7 +150,7 @@ fn get_layout(frame: &Frame) -> ScreenLayout {
         url_area: vert_sects[0],
         req_area: view_panes[0],
         res_area: view_panes[1],
-        help_area: vert_chunks[1],
+        _help_area: vert_chunks[1],
     }
 }
 
