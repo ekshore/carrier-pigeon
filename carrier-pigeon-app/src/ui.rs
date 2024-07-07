@@ -1,12 +1,12 @@
 use crate::state::*;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     terminal::Frame,
     text::Line,
     widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders, Clear, Paragraph, Wrap,
+        BorderType, Borders, Clear, List, Paragraph, Wrap,
     },
 };
 
@@ -44,39 +44,31 @@ pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
         .split(chunks[1])[1]
 }
 
-pub fn draw(app: &App, frame: &mut Frame) {
-    let vertical_panes = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(30), Constraint::Min(10)])
-        .split(frame.size());
-
-    let view_options = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(40),
-            Constraint::Percentage(30),
-            Constraint::Percentage(30),
-        ])
-        .split(vertical_panes[0]);
-
-    let view_panes = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(40)])
-        .split(vertical_panes[1]);
-
+pub fn draw(app: &mut App, frame: &mut Frame) {
     let request_select_block = title_block(" Requests ".into(), Color::White);
+    let request_list: List = if let Some(collection) = &app.collection {
+        List::new(&collection.requests)
+    } else {
+        let empty_list: Vec<String> = vec![];
+        List::new(empty_list)
+    };
+    let request_list = request_list
+        .block(request_select_block)
+        .style(Style::default().fg(Color::White))
+        .highlight_symbol(">>")
+        .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
+        .direction(ratatui::widgets::ListDirection::TopToBottom);
+
     let request_details_block = title_block(" Request ".into(), Color::White);
     let response_details_block = title_block(" Response ".into(), Color::White);
 
     let url_bar = title_block(" URL ".into(), Color::White);
-    let main_view = title_block(" Body ".into(), Color::White);
 
-    frame.render_widget(request_select_block, view_options[0]);
-    frame.render_widget(request_details_block, view_options[1]);
-    frame.render_widget(response_details_block, view_options[2]);
-
-    frame.render_widget(url_bar, view_panes[0]);
-    frame.render_widget(main_view, view_panes[1]);
+    let layout = get_layout(frame);
+    frame.render_stateful_widget(request_list, layout.req_list_area, &mut app.req_list_state);
+    frame.render_widget(url_bar, layout.url_area);
+    frame.render_widget(request_details_block, layout.req_area);
+    frame.render_widget(response_details_block, layout.res_area);
 
     match app.active_modal {
         Modal::None => {}
@@ -121,6 +113,44 @@ pub fn draw(app: &App, frame: &mut Frame) {
 
         frame.render_widget(Clear, area);
         frame.render_widget(log_paragraph, area);
+    }
+}
+
+struct ScreenLayout {
+    req_list_area: Rect,
+    url_area: Rect,
+    req_area: Rect,
+    res_area: Rect,
+    help_area: Rect,
+}
+
+fn get_layout(frame: &Frame) -> ScreenLayout {
+    let vert_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(50), Constraint::Length(1)])
+        .split(frame.size());
+
+    let horz_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(40), Constraint::Min(160)])
+        .split(vert_chunks[0]);
+
+    let vert_sects = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(10)])
+        .split(horz_chunks[1]);
+
+    let view_panes = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(vert_sects[1]);
+
+    ScreenLayout {
+        req_list_area: horz_chunks[0],
+        url_area: vert_sects[0],
+        req_area: view_panes[0],
+        res_area: view_panes[1],
+        help_area: vert_chunks[1],
     }
 }
 
