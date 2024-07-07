@@ -154,6 +154,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     }
 }
 
+use ratatui::text::Text;
+use crate::Request;
+impl<'a> From<&Request> for Text<'a> {
+    fn from(value: &Request) -> Self {
+        value.name.clone().into()
+    }
+}
+
 pub mod logging {
     use std::sync::{Arc, Mutex};
 
