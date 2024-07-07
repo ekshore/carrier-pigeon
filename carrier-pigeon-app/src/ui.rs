@@ -12,6 +12,44 @@ use ratatui::{
 
 use crate::state::App;
 
+struct ScreenLayout {
+    req_list_area: Rect,
+    url_area: Rect,
+    req_area: Rect,
+    res_area: Rect,
+    _help_area: Rect,
+}
+
+fn screen_layout(frame: &Frame) -> ScreenLayout {
+    let vert_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(50), Constraint::Length(1)])
+        .split(frame.size());
+
+    let horz_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(40), Constraint::Min(160)])
+        .split(vert_chunks[0]);
+
+    let vert_sects = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(10)])
+        .split(horz_chunks[1]);
+
+    let view_panes = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(vert_sects[1]);
+
+    ScreenLayout {
+        req_list_area: horz_chunks[0],
+        url_area: vert_sects[0],
+        req_area: view_panes[0],
+        res_area: view_panes[1],
+        _help_area: vert_chunks[1],
+    }
+}
+
 pub fn title_block(title_txt: String, color: Color) -> Block<'static> {
     Block::default()
         .title(
@@ -64,7 +102,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let url_bar = title_block(" URL ".into(), Color::White);
 
-    let layout = get_layout(frame);
+    let layout = screen_layout(frame);
     frame.render_stateful_widget(request_list, layout.req_list_area, &mut app.req_list_state);
     frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(request_details_block, layout.req_area);
@@ -113,44 +151,6 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
         frame.render_widget(Clear, area);
         frame.render_widget(log_paragraph, area);
-    }
-}
-
-struct ScreenLayout {
-    req_list_area: Rect,
-    url_area: Rect,
-    req_area: Rect,
-    res_area: Rect,
-    _help_area: Rect,
-}
-
-fn get_layout(frame: &Frame) -> ScreenLayout {
-    let vert_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(50), Constraint::Length(1)])
-        .split(frame.size());
-
-    let horz_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(40), Constraint::Min(160)])
-        .split(vert_chunks[0]);
-
-    let vert_sects = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(10)])
-        .split(horz_chunks[1]);
-
-    let view_panes = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(vert_sects[1]);
-
-    ScreenLayout {
-        req_list_area: horz_chunks[0],
-        url_area: vert_sects[0],
-        req_area: view_panes[0],
-        res_area: view_panes[1],
-        _help_area: vert_chunks[1],
     }
 }
 
