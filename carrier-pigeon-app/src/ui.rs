@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders, Clear, List, Paragraph, Wrap,
+        BorderType, Borders, Clear, List, Paragraph, Tabs, Wrap,
     },
 };
 
@@ -23,17 +23,17 @@ struct ScreenLayout {
 fn screen_layout(frame: &Frame) -> ScreenLayout {
     let vert_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(50), Constraint::Length(1)])
+        .constraints([Constraint::Percentage(100), Constraint::Length(1)])
         .split(frame.size());
 
     let horz_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(40), Constraint::Min(160)])
+        .constraints([Constraint::Fill(1), Constraint::Fill(4)])
         .split(vert_chunks[0]);
 
     let vert_sects = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(10)])
+        .constraints([Constraint::Length(3), Constraint::Percentage(100)])
         .split(horz_chunks[1]);
 
     let view_panes = Layout::default()
@@ -83,31 +83,46 @@ pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
 }
 
 pub fn draw(app: &mut App, frame: &mut Frame) {
-    let request_select_block = title_block(" Requests ".into(), Color::White);
-    let request_list: List = if let Some(collection) = &app.collection {
+    let req_select_block = title_block(" Requests ".into(), Color::White);
+    let req_list: List = if let Some(collection) = &app.collection {
         List::new(&collection.requests)
     } else {
         let empty_list: Vec<String> = vec![];
         List::new(empty_list)
     };
-    let request_list = request_list
-        .block(request_select_block)
+    let req_list = req_list
+        .block(req_select_block)
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>")
         .repeat_highlight_symbol(true)
         .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
         .direction(ratatui::widgets::ListDirection::TopToBottom);
 
-    let request_details_block = title_block(" Request ".into(), Color::White);
-    let response_details_block = title_block(" Response ".into(), Color::White);
+    let tabs: Vec<String> = Tab::to_vec().into_iter().map(|v| v.to_string()).collect();
+
+    let req_details_block = title_block(" Request ".into(), Color::White);
+    let req_tabs = Tabs::new(tabs.clone())
+        .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
+        .select(0);
+
+    let res_details_block = title_block(" Response ".into(), Color::White);
+    let res_tabs = Tabs::new(tabs)
+        .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
+        .block(res_details_block)
+        .select(Tab::Headers.into());
 
     let url_bar = title_block(" URL ".into(), Color::White);
 
     let layout = screen_layout(frame);
-    frame.render_stateful_widget(request_list, layout.req_list_area, &mut app.req_list_state);
+    let req_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+        .margin(1)
+        .split(layout.req_area);
+
+    frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
     frame.render_widget(url_bar, layout.url_area);
-    frame.render_widget(request_details_block, layout.req_area);
-    frame.render_widget(response_details_block, layout.res_area);
+    frame.render_widget(req_details_block, layout.req_area);
+    frame.render_widget(req_tabs, req_layout[0]);
+    frame.render_widget(res_tabs, layout.res_area);
 
     match app.active_modal {
         Modal::None => {}
@@ -166,8 +181,9 @@ impl<'a> From<&Request> for Text<'a> {
         Line::from(vec![
             Span::styled(format!("{:5}", value.method.to_string()), method_style),
             Span::raw(": "),
-            Span::raw(value.name.clone())
-        ]).into()
+            Span::raw(value.name.clone()),
+        ])
+        .into()
     }
 }
 

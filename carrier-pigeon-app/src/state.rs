@@ -144,6 +144,36 @@ pub struct GlobalState {
     pub secrets: HashMap<Box<str>, Secret>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Tab {
+    Body,
+    Headers,
+}
+
+impl Tab {
+    pub fn to_vec() -> Vec<Tab> {
+        vec![Tab::Body, Tab::Headers]
+    }
+}
+
+impl std::fmt::Display for Tab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Self::Body => "Body",
+            Self::Headers => "Headers",
+        })
+    }
+}
+
+impl From<Tab> for usize {
+    fn from(value: Tab) -> Self {
+        match value {
+            Tab::Body => 0,
+            Tab::Headers => 1,
+        }
+    }
+}
+
 pub struct AbsentValue;
 pub struct Logs<'a>(Arc<Mutex<ui::logging::RecordBuff<'a>>>);
 pub struct State(GlobalState);
