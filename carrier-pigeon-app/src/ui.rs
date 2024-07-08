@@ -108,7 +108,6 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     let res_details_block = title_block(" Response ".into(), Color::White);
     let res_tabs = Tabs::new(tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .block(res_details_block)
         .select(Tab::Headers.into());
 
     let url_bar = title_block(" URL ".into(), Color::White);
@@ -117,12 +116,16 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     let req_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
         .margin(1)
         .split(layout.req_area);
+    let res_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+        .margin(1)
+        .split(layout.res_area);
 
     frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
     frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(req_details_block, layout.req_area);
+    frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
-    frame.render_widget(res_tabs, layout.res_area);
+    frame.render_widget(res_tabs, res_layout[0]);
 
     match app.active_modal {
         Modal::None => {}
