@@ -1,4 +1,5 @@
 use crate::state::*;
+use log::warn;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -105,6 +106,27 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(0);
 
+    let req_body: Paragraph = if let Some(coll) = &app.collection {
+        if let Some(req) = &coll
+            .requests
+            .get(app.req_list_state.selected().expect("This should be here"))
+        {
+            if let Some(body) = &req.body {
+                Paragraph::new(body.as_str()).wrap(Wrap { trim: true })
+            } else {
+                Paragraph::default()
+            }
+        } else {
+            warn!(
+                "This tried to retrieve request at index: {}",
+                app.req_list_state.selected().unwrap()
+            );
+            Paragraph::default()
+        }
+    } else {
+        Paragraph::default()
+    };
+
     let res_details_block = title_block(" Response ".into(), Color::White);
     let res_tabs = Tabs::new(tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
@@ -125,6 +147,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
+    frame.render_widget(req_body, req_layout[1]);
     frame.render_widget(res_tabs, res_layout[0]);
 
     match app.active_modal {
