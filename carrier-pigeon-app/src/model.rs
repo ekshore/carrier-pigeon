@@ -46,8 +46,8 @@ pub enum Protocol {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Header {
-    name: Box<str>,
-    value: Box<str>,
+    pub name: Box<str>,
+    pub value: Box<str>,
 }
 
 #[allow(dead_code)]

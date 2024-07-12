@@ -17,7 +17,10 @@ mod ui;
 
 use crate::{
     model::Request,
-    state::{App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection},
+    state::{
+        App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection,
+        Tab,
+    },
 };
 
 #[allow(dead_code)]
@@ -31,9 +34,12 @@ enum Message {
     NewCollection,
     Quit,
     RawKeyEvent(KeyEvent),
+    RequestPane(Pane),
     SaveCollection,
     SaveGlobal,
     SelectDown,
+    SelectLeft,
+    SelectRight,
     SelectUp,
     Start,
     ToggleDebug,
@@ -108,7 +114,9 @@ fn load_global_state() -> Result<GlobalState> {
     } else {
         info!("Global directory does not exist creating new");
         fs::create_dir_all(app_dir)?;
-        Ok(GlobalState { secrets: HashMap::new() })
+        Ok(GlobalState {
+            secrets: HashMap::new(),
+        })
     }
 }
 
@@ -221,8 +229,14 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             let request = Request::from_file_sync("./request.json".into())?;
             coll.requests.push(request);
             let mut env_vals: EnvironmentValues = HashMap::new();
-            env_vals.insert("TestValue".into(), state::EnvironmentValue::Value("Some value".into()));
-            coll.environments.push(Environment { name: "TestEnvironment".into(), values: env_vals });
+            env_vals.insert(
+                "TestValue".into(),
+                state::EnvironmentValue::Value("Some value".into()),
+            );
+            coll.environments.push(Environment {
+                name: "TestEnvironment".into(),
+                values: env_vals,
+            });
 
             app.collection = Some(coll);
             Some(Message::SaveCollection)
@@ -232,6 +246,10 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             app.running = false;
             update(app, Message::SaveCollection)?;
             update(app, Message::SaveGlobal)?;
+            None
+        }
+        Message::RequestPane(pane) => {
+            app.active_pane = pane;
             None
         }
         Message::SaveCollection => {
@@ -288,9 +306,35 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             trace!("Select Down");
             match app.active_pane {
                 Pane::Select => app.req_list_state.select_next(),
-                Pane::Request => {},
-                Pane::Response => {},
-                Pane::Url => {},
+                Pane::Request => {}
+                Pane::Response => {}
+                Pane::Url => {}
+            }
+            None
+        }
+        Message::SelectLeft => {
+            trace!("Select Left");
+            match app.active_pane {
+                Pane::Select => {}
+                Pane::Request => {
+                    let cur_tab_idx: usize = app.req_tab.clone().into();
+                    app.req_tab = Tab::from(cur_tab_idx - 1);
+                }
+                Pane::Response => {}
+                Pane::Url => {}
+            }
+            None
+        }
+        Message::SelectRight => {
+            trace!("Select Right");
+            match app.active_pane {
+                Pane::Select => {}
+                Pane::Request => {
+                    let cur_tab_idx: usize = app.req_tab.clone().into();
+                    app.req_tab = Tab::from(cur_tab_idx + 1);
+                }
+                Pane::Response => {}
+                Pane::Url => {}
             }
             None
         }
@@ -298,9 +342,9 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             trace!("Select Up");
             match app.active_pane {
                 Pane::Select => app.req_list_state.select_previous(),
-                Pane::Request => {},
-                Pane::Response => {},
-                Pane::Url => {},
+                Pane::Request => {}
+                Pane::Response => {}
+                Pane::Url => {}
             }
             None
         }
@@ -319,9 +363,15 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
 fn handle_normal_key(key_event: KeyEvent) -> Option<Message> {
     if key_event.kind == event::KeyEventKind::Press {
         match key_event.code {
+            KeyCode::Char('1') => Some(Message::RequestPane(Pane::Select)),
+            KeyCode::Char('2') => Some(Message::RequestPane(Pane::Url)),
+            KeyCode::Char('3') => Some(Message::RequestPane(Pane::Request)),
+            KeyCode::Char('4') => Some(Message::RequestPane(Pane::Response)),
             KeyCode::Char('i') => Some(Message::ModeRequest(Mode::Insert)),
+            KeyCode::Char('h') => Some(Message::SelectLeft),
             KeyCode::Char('j') => Some(Message::SelectDown),
             KeyCode::Char('k') => Some(Message::SelectUp),
+            KeyCode::Char('l') => Some(Message::SelectRight),
             KeyCode::Char('q') => Some(Message::Quit),
             KeyCode::Char('Q') => Some(Message::Quit),
             KeyCode::F(12) => Some(Message::ToggleDebug),

@@ -24,7 +24,7 @@ pub enum Mode {
     Insert,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub enum Pane {
     #[default]
     Select,
@@ -144,8 +144,9 @@ pub struct GlobalState {
     pub secrets: HashMap<Box<str>, Secret>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum Tab {
+    #[default]
     Body,
     Headers,
 }
@@ -158,10 +159,14 @@ impl Tab {
 
 impl std::fmt::Display for Tab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Body => "Body",
-            Self::Headers => "Headers",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Body => "Body",
+                Self::Headers => "Headers",
+            }
+        )
     }
 }
 
@@ -170,6 +175,16 @@ impl From<Tab> for usize {
         match value {
             Tab::Body => 0,
             Tab::Headers => 1,
+        }
+    }
+}
+
+impl From<usize> for Tab {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Tab::Body,
+            1 => Tab::Headers,
+            _ => Tab::Headers,
         }
     }
 }
@@ -222,6 +237,7 @@ impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
             work_dir: self.work_dir.0,
             global: self.global_state.0,
             req_list_state: ListState::default(),
+            req_tab: Tab::default(),
             debug_logs: self.logs.0,
             show_debug: false,
         }
@@ -237,6 +253,7 @@ pub struct App<'a> {
     pub work_dir: PathBuf,
     pub global: GlobalState,
     pub req_list_state: ListState,
+    pub req_tab: Tab,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,

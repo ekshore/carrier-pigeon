@@ -7,7 +7,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders, Clear, List, Paragraph, Tabs, Wrap,
+        BorderType, Borders, Clear, List, Paragraph, Row, Table, Tabs, Wrap,
     },
 };
 
@@ -84,7 +84,22 @@ pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
 }
 
 pub fn draw(app: &mut App, frame: &mut Frame) {
-    let req_select_block = title_block(" Requests ".into(), Color::White);
+    let layout = screen_layout(frame);
+    let req_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+        .margin(1)
+        .split(layout.req_area);
+    let res_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+        .margin(1)
+        .split(layout.res_area);
+
+    let req_select_block = title_block(
+        " Requests ".into(),
+        if app.active_pane == Pane::Select {
+            Color::Green
+        } else {
+            Color::White
+        },
+    );
     let req_list: List = if let Some(collection) = &app.collection {
         List::new(&collection.requests)
     } else {
@@ -99,55 +114,97 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
         .direction(ratatui::widgets::ListDirection::TopToBottom);
 
+    let url_bar = title_block(
+        " URL ".into(),
+        if app.active_pane == Pane::Url {
+            Color::Green
+        } else {
+            Color::White
+        },
+    );
+
     let tabs: Vec<String> = Tab::to_vec().into_iter().map(|v| v.to_string()).collect();
 
-    let req_details_block = title_block(" Request ".into(), Color::White);
+    let req_details_block = title_block(
+        " Request ".into(),
+        if app.active_pane == Pane::Request {
+            Color::Green
+        } else {
+            Color::White
+        },
+    );
     let req_tabs = Tabs::new(tabs.clone())
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(0);
+        .select(app.req_tab.clone().into());
 
-    let req_body: Paragraph = if let Some(coll) = &app.collection {
-        if let Some(req) = &coll
-            .requests
-            .get(app.req_list_state.selected().expect("This should be here"))
-        {
-            if let Some(body) = &req.body {
-                Paragraph::new(body.as_str()).wrap(Wrap { trim: true })
+    match &app.req_tab {
+        Tab::Body => {
+            let req_body = if let Some(coll) = &app.collection {
+                if let Some(req) = &coll.requests.get(
+                    app.req_list_state
+                        .selected()
+                        .expect("Expected there to be a selected request"),
+                ) {
+                    if let Some(body) = &req.body {
+                        Paragraph::new(body.as_str()).wrap(Wrap { trim: true })
+                    } else {
+                        Paragraph::default()
+                    }
+                } else {
+                    warn!(
+                        "Tried to retrieve request at index: {}",
+                        app.req_list_state.selected().unwrap()
+                    );
+                    Paragraph::default()
+                }
             } else {
                 Paragraph::default()
-            }
-        } else {
-            warn!(
-                "This tried to retrieve request at index: {}",
-                app.req_list_state.selected().unwrap()
-            );
-            Paragraph::default()
+            };
+            frame.render_widget(req_body, req_layout[1]);
         }
-    } else {
-        Paragraph::default()
-    };
+        Tab::Headers => {
+            let header_table = Table::default()
+                .header(Row::new(vec!["Header Name", "Value"]).style(Style::new().bold()))
+                .column_spacing(1)
+                .rows(if let Some(coll) = &app.collection {
+                    if let Some(req) = &coll.requests.get(
+                        app.req_list_state
+                            .selected()
+                            .expect("Expected there to be a selected request"),
+                    ) {
+                        req.headers
+                            .iter()
+                            .map(|header| {
+                                Row::new(vec![header.name.as_ref(), header.value.as_ref()])
+                            })
+                            .collect()
+                    } else {
+                        vec![Row::new(vec!["", ""])]
+                    }
+                } else {
+                    vec![Row::new(vec!["", ""])]
+                });
+            frame.render_widget(header_table, req_layout[1]);
+        }
+    }
 
-    let res_details_block = title_block(" Response ".into(), Color::White);
+    let res_details_block = title_block(
+        " Response ".into(),
+        if app.active_pane == Pane::Response {
+            Color::Green
+        } else {
+            Color::White
+        },
+    );
     let res_tabs = Tabs::new(tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(Tab::Headers.into());
-
-    let url_bar = title_block(" URL ".into(), Color::White);
-
-    let layout = screen_layout(frame);
-    let req_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
-        .margin(1)
-        .split(layout.req_area);
-    let res_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
-        .margin(1)
-        .split(layout.res_area);
 
     frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
     frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
-    frame.render_widget(req_body, req_layout[1]);
     frame.render_widget(res_tabs, res_layout[0]);
 
     match app.active_modal {
