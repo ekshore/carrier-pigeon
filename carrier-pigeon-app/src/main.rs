@@ -318,7 +318,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                 Pane::Select => {}
                 Pane::Request => {
                     let cur_tab_idx: usize = app.req_tab.clone().into();
-                    app.req_tab = Tab::from(cur_tab_idx - 1);
+                    app.req_tab = Tab::from(if cur_tab_idx == 0 {
+                        cur_tab_idx
+                    } else {
+                        cur_tab_idx - 1
+                    });
                 }
                 Pane::Response => {}
                 Pane::Url => {}
