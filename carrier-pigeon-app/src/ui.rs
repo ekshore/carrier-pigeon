@@ -92,168 +92,36 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .margin(1)
         .split(layout.res_area);
 
-    let req_select_block = title_block(
-        " Requests ".into(),
-        if app.active_pane == Pane::Select {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-    let req_list: List = if let Some(collection) = &app.collection {
-        List::new(&collection.requests)
-    } else {
-        let empty_list: Vec<String> = vec![];
-        List::new(empty_list)
-    };
-    let req_list = req_list
-        .block(req_select_block)
-        .style(Style::default().fg(Color::White))
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true)
-        .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
-        .direction(ratatui::widgets::ListDirection::TopToBottom);
-
-    let url_bar = title_block(
-        " URL ".into(),
-        if app.active_pane == Pane::Url {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-
-    let tabs: Vec<String> = Tab::to_vec().into_iter().map(|v| v.to_string()).collect();
-
-    let req_details_block = title_block(
-        " Request ".into(),
-        if app.active_pane == Pane::Request {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-    let req_tabs = Tabs::new(tabs.clone())
-        .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(app.req_tab.clone().into());
-
-    match &app.req_tab {
-        Tab::Body => {
-            let req_body = if let Some(coll) = &app.collection {
-                if let Some(req) = &coll.requests.get(
-                    app.req_list_state
-                        .selected()
-                        .expect("Expected there to be a selected request"),
-                ) {
-                    if let Some(body) = &req.body {
-                        Paragraph::new(body.as_str()).wrap(Wrap { trim: true })
-                    } else {
-                        Paragraph::default()
-                    }
-                } else {
-                    warn!(
-                        "Tried to retrieve request at index: {}",
-                        app.req_list_state.selected().unwrap()
-                    );
-                    Paragraph::default()
-                }
-            } else {
-                Paragraph::default()
-            };
-            frame.render_widget(req_body, req_layout[1]);
-        }
-        Tab::Headers => {
-            let header_table = Table::default()
-                .header(Row::new(vec!["Header Name", "Value"]).style(Style::new().bold()))
-                .column_spacing(1)
-                .rows(if let Some(coll) = &app.collection {
-                    if let Some(req) = &coll.requests.get(
-                        app.req_list_state
-                            .selected()
-                            .expect("Expected there to be a selected request"),
-                    ) {
-                        req.headers
-                            .iter()
-                            .map(|header| {
-                                Row::new(vec![header.name.as_ref(), header.value.as_ref()])
-                            })
-                            .collect()
-                    } else {
-                        vec![Row::new(vec!["", ""])]
-                    }
-                } else {
-                    vec![Row::new(vec!["", ""])]
-                });
-            frame.render_widget(header_table, req_layout[1]);
-        }
-    }
-
-    let res_details_block = title_block(
-        " Response ".into(),
-        if app.active_pane == Pane::Response {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-    let res_tabs = Tabs::new(tabs)
-        .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(Tab::Headers.into());
-
-    frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
-    frame.render_widget(url_bar, layout.url_area);
-    frame.render_widget(req_details_block, layout.req_area);
-    frame.render_widget(res_details_block, layout.res_area);
-    frame.render_widget(req_tabs, req_layout[0]);
-    frame.render_widget(res_tabs, res_layout[0]);
-
-    match app.active_modal {
-        Modal::None => {}
-        Modal::LoadCollection => {
-            let modal = title_block(" Load Collection ".into(), Color::White);
-            let modal = modal.title(
-                Title::from(" (c) to create / (q) to quit ")
-                    .position(Position::Bottom)
-                    .alignment(Alignment::Center),
-            );
-            let modal_area = modal_layout(50, 25, frame.size());
-
-            frame.render_widget(Clear, modal_area);
-            frame.render_widget(modal, modal_area);
-        }
-        Modal::Environment => todo!(),
-    }
-
-    if app.show_debug {
-        let debug_modal = title_block(" Debug Log ".into(), Color::LightGreen);
-        let area = modal_layout(75, 50, frame.size());
-
-        let logs = if let Ok(log_buf) = app.debug_logs.lock() {
-            log_buf.display_logs()
-        } else {
-            vec![Line::from("SHIT")]
-        };
-
-        let log_paragraph = Paragraph::new(logs)
-            .wrap(Wrap { trim: true })
-            .block(debug_modal)
-            .alignment(Alignment::Left);
-
-        let line_count = log_paragraph.line_count(area.width) as u16;
-        let scroll_offset = if line_count > area.height {
-            line_count - area.height
-        } else {
-            0
-        };
-
-        let log_paragraph = log_paragraph.scroll((scroll_offset, 0));
-
-        frame.render_widget(Clear, area);
-        frame.render_widget(log_paragraph, area);
-    }
+    //if app.show_debug {
+    //    let debug_modal = title_block(" Debug Log ".into(), Color::LightGreen);
+    //    let area = modal_layout(75, 50, frame.size());
+    //
+    //    let logs = if let Ok(log_buf) = app.debug_logs.lock() {
+    //        log_buf.display_logs()
+    //    } else {
+    //        vec![Line::from("SHIT")]
+    //    };
+    //
+    //    let log_paragraph = Paragraph::new(logs)
+    //        .wrap(Wrap { trim: true })
+    //        .block(debug_modal)
+    //        .alignment(Alignment::Left);
+    //
+    //    let line_count = log_paragraph.line_count(area.width) as u16;
+    //    let scroll_offset = if line_count > area.height {
+    //        line_count - area.height
+    //    } else {
+    //        0
+    //    };
+    //
+    //    let log_paragraph = log_paragraph.scroll((scroll_offset, 0));
+    //
+    //    frame.render_widget(Clear, area);
+    //    frame.render_widget(log_paragraph, area);
+    //}
 }
 
-use crate::Request;
+use crate::model::Request;
 impl<'a> From<&Request> for Text<'a> {
     fn from(value: &Request) -> Self {
         use crate::model::Method;
