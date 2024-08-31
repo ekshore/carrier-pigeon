@@ -139,6 +139,19 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(app.req_tab.clone().into());
 
+    if let Some(coll) = &app.collection {
+        if let Some(req) = &coll.requests.get(
+            app.req_list_state
+                .selected()
+                .expect("Expected there to be a selected request"),
+        ) {
+            let url_text = Paragraph::new(req.url.as_str()).block(url_bar);
+            frame.render_widget(url_text, layout.url_area);
+        } else {
+            frame.render_widget(url_bar, layout.url_area);
+        }
+    }
+
     match &app.req_tab {
         Tab::Body => {
             let req_body = if let Some(coll) = &app.collection {
@@ -203,7 +216,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .select(Tab::Headers.into());
 
     frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
-    frame.render_widget(url_bar, layout.url_area);
+    //frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
