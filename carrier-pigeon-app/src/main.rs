@@ -26,6 +26,7 @@ use crate::{
 #[allow(dead_code)]
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
+#[derive(Debug)]
 enum Message {
     Crash(String),
     LoadCollection(PathBuf),
@@ -48,9 +49,18 @@ enum Message {
 #[tokio::main]
 async fn main() -> Result<()> {
     errors::install_hooks()?;
-    let config = simplelog::ConfigBuilder::new().build();
+    let config = simplelog::ConfigBuilder::new()
+        .set_time_format_custom(simplelog::format_description!(
+            "[hour]:[minute]:[second].[subsecond]"
+        ))
+        .build();
     let (ui_logger, logs) = ui::logging::UILogger::new(LevelFilter::Debug, config.clone());
     let _logger = CombinedLogger::init(vec![
+        simplelog::WriteLogger::new(
+            LevelFilter::Trace,
+            config.clone(),
+            std::fs::File::create("pigeon_log.log").unwrap(),
+        ),
         TermLogger::new(
             LevelFilter::Off,
             config,
@@ -75,7 +85,7 @@ async fn main() -> Result<()> {
     event_tx.send(Some(Message::Start)).await?;
 
     let event_thread_tx = event_tx.clone();
-    let event_thread = tokio::spawn(async move { start_event_thread(event_thread_tx).await });
+    let event_thread = tokio::task::spawn_blocking(|| start_event_thread(event_thread_tx));
 
     while app.running {
         if event_thread.is_finished() {
@@ -83,12 +93,14 @@ async fn main() -> Result<()> {
         }
 
         tui.draw(|frame| ui::draw(&mut app, frame))?;
-        while let Some(msg) = event_rx
+        if let Some(msg) = event_rx
             .recv()
             .await
             .unwrap_or_else(|| Some(Message::Crash(String::from("Event channel closed"))))
         {
+            debug!("Processing Message: {:?}", msg);
             if let Some(msg) = update(&mut app, msg)? {
+                debug!("Update produced new message: {:?}", msg);
                 event_tx.send(Some(msg)).await?;
             }
         }
@@ -132,9 +144,11 @@ fn save_global_state(state: &GlobalState) -> Result<()> {
     Ok(())
 }
 
-async fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
+fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
     loop {
-        let msg = if event::poll(Duration::from_millis(10))? {
+        trace!("Polling for Event");
+        let msg = if event::poll(Duration::from_millis(2000))? {
+            trace!("Event Ready");
             match event::read()? {
                 Event::Key(key_event) => Some(Message::RawKeyEvent(key_event)),
                 _ => None,
@@ -142,7 +156,8 @@ async fn start_event_thread(tx: mpsc::Sender<Option<Message>>) -> Result<()> {
         } else {
             None
         };
-        tx.send(msg).await?;
+        trace!("Sending Message from Event thread: {:?}", msg);
+        tx.blocking_send(msg)?;
     }
 }
 
