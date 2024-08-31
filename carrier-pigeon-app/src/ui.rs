@@ -93,19 +93,21 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .split(layout.res_area);
 
     let req_select_block = title_block(
-        " Requests ".into(),
+        " Requests [1] ".into(),
         if app.active_pane == Pane::Select {
             Color::Green
         } else {
             Color::White
         },
     );
+
     let req_list: List = if let Some(collection) = &app.collection {
         List::new(&collection.requests)
     } else {
         let empty_list: Vec<String> = vec![];
         List::new(empty_list)
     };
+
     let req_list = req_list
         .block(req_select_block)
         .style(Style::default().fg(Color::White))
@@ -115,7 +117,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .direction(ratatui::widgets::ListDirection::TopToBottom);
 
     let url_bar = title_block(
-        " URL ".into(),
+        " URL [2] ".into(),
         if app.active_pane == Pane::Url {
             Color::Green
         } else {
@@ -126,7 +128,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     let tabs: Vec<String> = Tab::to_vec().into_iter().map(|v| v.to_string()).collect();
 
     let req_details_block = title_block(
-        " Request ".into(),
+        " Request [3] ".into(),
         if app.active_pane == Pane::Request {
             Color::Green
         } else {
@@ -189,7 +191,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     }
 
     let res_details_block = title_block(
-        " Response ".into(),
+        " Response [4] ".into(),
         if app.active_pane == Pane::Response {
             Color::Green
         } else {
