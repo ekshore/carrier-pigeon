@@ -241,8 +241,6 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         Message::NewCollection => {
             debug!("Creating new collection");
             let mut coll = crate::state::Collection::default();
-            let request = Request::from_file_sync("./request.json".into())?;
-            coll.requests.push(request);
             let mut env_vals: EnvironmentValues = HashMap::new();
             env_vals.insert(
                 "TestValue".into(),

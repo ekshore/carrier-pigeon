@@ -2,15 +2,9 @@ use color_eyre::eyre::bail;
 use color_eyre::Result;
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
-
-use log::{debug, info};
 
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
-
-use tokio::fs;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum Method {
@@ -302,41 +296,6 @@ impl Request {
             path_params: None,
             query_params: None,
         }
-    }
-
-    pub async fn from_file(file_path: PathBuf) -> Result<Self> {
-        info!("Reading single request from file");
-        let mut file = fs::File::open(file_path).await?;
-        let mut buf = String::new();
-        let bytes_read = file.read_to_string(&mut buf).await?;
-        debug!("{} bytes read from file", bytes_read);
-        let request: Self = serde_json::from_str(&buf)?;
-        debug!("Request read from file {:#?}", request);
-        Ok(request)
-    }
-
-    pub fn from_file_sync(file_path: PathBuf) -> Result<Self> {
-        use color_eyre::eyre::WrapErr;
-        use std::io::Read;
-        info!("Reading single request from file");
-        let mut file = std::fs::File::open(&file_path).wrap_err_with(|| {
-            let path_str: String = file_path.into_os_string().into_string().unwrap();
-            format!("File path: {}", path_str)
-        })?;
-        let mut buf = String::new();
-        let bytes_read = file.read_to_string(&mut buf)?;
-        debug!("{} bytes read from file", bytes_read);
-        let request: Self = serde_json::from_str(&buf)?;
-        debug!("Request read from file {:#?}", request);
-        Ok(request)
-    }
-
-    pub async fn save_to_file(&self, file_path: PathBuf) -> Result<()> {
-        let req_json = serde_json::to_string(&self)?;
-        let mut file = fs::File::create(file_path).await?;
-        info!("Writing to file");
-        file.write_all(req_json.as_bytes()).await?;
-        Ok(())
     }
 }
 
