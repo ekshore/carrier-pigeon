@@ -87,7 +87,6 @@ pub struct RequestBuilder<N, M, U> {
     pub query_params: Option<HashMap<String, String>>,
 }
 
-#[allow(dead_code)]
 impl<N, M, U> RequestBuilder<N, M, U> {
     pub fn name(self, name: String) -> RequestBuilder<Name, M, U> {
         RequestBuilder::<Name, M, U> {
@@ -255,7 +254,6 @@ impl<N, M, U> RequestBuilder<N, M, U> {
     }
 }
 
-#[allow(dead_code)]
 impl RequestBuilder<Name, HasMethod, Url> {
     pub fn build(self) -> Request {
         Request {
@@ -283,7 +281,6 @@ pub struct Request {
     pub query_params: Option<HashMap<String, String>>,
 }
 
-#[allow(dead_code)]
 impl Request {
     pub fn builder() -> RequestBuilder<NoName, NoMethod, NoUrl> {
         RequestBuilder {
