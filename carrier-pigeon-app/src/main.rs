@@ -10,13 +10,12 @@ use std::{collections::HashMap, env, fs, path::PathBuf, time::Duration};
 use tokio::sync::mpsc;
 
 mod errors;
-mod model;
 mod state;
 mod tui;
 mod ui;
 
+use carrier_pigeon_core::Request;
 use crate::{
-    model::Request,
     state::{
         App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection,
         Tab,

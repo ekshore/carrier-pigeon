@@ -90,6 +90,7 @@ checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 name = "carrier-pigeon-app"
 version = "0.1.0"
 dependencies = [
+ "carrier-pigeon-core",
  "carrier-pigeon-macros",
  "color-eyre",
  "crossterm 0.28.1",
@@ -102,6 +103,15 @@ dependencies = [
  "simplelog",
  "time",
  "tokio",
+]
+
+[[package]]
+name = "carrier-pigeon-core"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "reqwest",
+ "serde",
 ]
 
 [[package]]
@@ -1247,9 +1257,7 @@ dependencies = [
  "bytes",
  "libc",
  "mio 1.0.2",
- "parking_lot",
  "pin-project-lite",
- "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.52.0",

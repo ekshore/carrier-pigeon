@@ -1,4 +1,4 @@
-use crate::model::Request;
+use carrier_pigeon_core::Request;
 use crate::ui;
 
 use ratatui::widgets::ListState;

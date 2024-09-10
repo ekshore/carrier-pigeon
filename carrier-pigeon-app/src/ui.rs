@@ -102,7 +102,13 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     );
 
     let req_list: List = if let Some(collection) = &app.collection {
-        List::new(&collection.requests)
+        List::new(
+            collection
+                .requests
+                .iter()
+                .map(request_text)
+                .collect::<Vec<_>>(),
+        )
     } else {
         let empty_list: Vec<String> = vec![];
         List::new(empty_list)
@@ -268,21 +274,18 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     }
 }
 
-use crate::Request;
-impl<'a> From<&Request> for Text<'a> {
-    fn from(value: &Request) -> Self {
-        use crate::model::Method;
-        let method_style = match value.method {
-            Method::Get => Style::new().green().bold(),
-            Method::Post => Style::new().magenta().bold(),
-        };
-        Line::from(vec![
-            Span::styled(format!("{:5}", value.method.to_string()), method_style),
-            Span::raw(": "),
-            Span::raw(value.name.clone()),
-        ])
-        .into()
-    }
+use carrier_pigeon_core::{Method, Request};
+fn request_text(req: &Request) -> Text<'_> {
+    let method_style = match req.method {
+        Method::Get => Style::new().green().bold(),
+        Method::Post => Style::new().magenta().bold(),
+    };
+    Line::from(vec![
+        Span::styled(format!("{:5}", req.method.to_string()), method_style),
+        Span::raw(": "),
+        Span::raw(req.name.clone()),
+    ])
+    .into()
 }
 
 pub mod logging {
