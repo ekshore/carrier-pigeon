@@ -14,12 +14,8 @@ mod state;
 mod tui;
 mod ui;
 
-use carrier_pigeon_core::Request;
-use crate::{
-    state::{
-        App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection,
-        Tab,
-    },
+use crate::state::{
+    App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection, Tab,
 };
 
 #[allow(dead_code)]
