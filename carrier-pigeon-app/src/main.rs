@@ -225,7 +225,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                     environments,
                 },
             ));
-            app.req_list_state.select_first();
+            app.window_state.select_list_state.select_first();
             None
         }
         Message::ModeRequest(mode) => {
@@ -257,7 +257,7 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             None
         }
         Message::RequestPane(pane) => {
-            app.active_pane = pane;
+            app.window_state.focused_pane = pane;
             None
         }
         Message::SaveCollection => {
@@ -312,8 +312,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SelectDown => {
             trace!("Select Down");
-            match app.active_pane {
-                Pane::Select => app.req_list_state.select_next(),
+            match app.window_state.focused_pane {
+                Pane::Select => app.window_state.select_list_state.select_next(),
                 Pane::Request => {}
                 Pane::Response => {}
                 Pane::Url => {}
@@ -322,11 +322,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SelectLeft => {
             trace!("Select Left");
-            match app.active_pane {
+            match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    let cur_tab_idx: usize = app.req_tab.clone().into();
-                    app.req_tab = Tab::from(if cur_tab_idx == 0 {
+                    let cur_tab_idx: usize = app.window_state.req_tab.clone().into();
+                    app.window_state.req_tab = Tab::from(if cur_tab_idx == 0 {
                         cur_tab_idx
                     } else {
                         cur_tab_idx - 1
@@ -339,11 +339,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SelectRight => {
             trace!("Select Right");
-            match app.active_pane {
+            match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    let cur_tab_idx: usize = app.req_tab.clone().into();
-                    app.req_tab = Tab::from(cur_tab_idx + 1);
+                    let cur_tab_idx: usize = app.window_state.req_tab.clone().into();
+                    app.window_state.req_tab = Tab::from(cur_tab_idx + 1);
                 }
                 Pane::Response => {}
                 Pane::Url => {}
@@ -352,8 +352,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
         }
         Message::SelectUp => {
             trace!("Select Up");
-            match app.active_pane {
-                Pane::Select => app.req_list_state.select_previous(),
+            match app.window_state.focused_pane {
+                Pane::Select => app.window_state.select_list_state.select_previous(),
                 Pane::Request => {}
                 Pane::Response => {}
                 Pane::Url => {}

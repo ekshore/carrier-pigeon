@@ -10,19 +10,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
 pub enum Modal {
     LoadCollection,
     Environment,
     #[default]
     None,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub enum Mode {
-    #[default]
-    Normal,
-    Insert,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -39,6 +32,23 @@ pub enum Tab {
     #[default]
     Body,
     Headers,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+pub struct WindowState {
+    pub modal: Modal,
+    pub focused_pane: Pane,
+    pub req_tab: Tab,
+    pub res_tab: Tab,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub select_list_state: ListState,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub enum Mode {
+    #[default]
+    Normal,
+    Insert,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -192,15 +202,12 @@ impl<'a, L, G, W> AppBuilder<L, G, W> {
 impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
     pub fn build(self) -> App<'a> {
         App {
+            window_state: WindowState::default(),
             mode: Mode::default(),
-            active_modal: Modal::default(),
-            active_pane: Pane::default(),
             collection: None,
             running: true,
             work_dir: self.work_dir.0,
             global: self.global_state.0,
-            req_list_state: ListState::default(),
-            req_tab: Tab::default(),
             input_buf: String::default(),
             debug_logs: self.logs.0,
             show_debug: false,
@@ -209,15 +216,12 @@ impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
 }
 
 pub struct App<'a> {
+    pub window_state: WindowState,
     pub mode: Mode,
-    pub active_modal: Modal,
-    pub active_pane: Pane,
     pub collection: Option<Collection>,
     pub running: bool,
     pub work_dir: PathBuf,
     pub global: GlobalState,
-    pub req_list_state: ListState,
-    pub req_tab: Tab,
     pub input_buf: String,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
@@ -237,9 +241,8 @@ impl<'a> App<'a> {
 impl<'a> std::fmt::Debug for App<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App")
+            .field("window_state", &format_args!("{:?}", self.window_state))
             .field("mode", &format_args!("{:?}", self.mode))
-            .field("active_modal", &format_args!("{:?}", self.active_modal))
-            .field("active_pane", &format_args!("{:?}", self.active_pane))
             .field("collection", &format_args!("{:?}", self.collection))
             .field("running", &self.running)
             .finish()

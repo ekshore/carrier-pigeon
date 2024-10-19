@@ -94,7 +94,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let req_select_block = title_block(
         " Requests [1] ".into(),
-        if app.active_pane == Pane::Select {
+        if app.window_state.focused_pane == Pane::Select {
             Color::Green
         } else {
             Color::White
@@ -124,7 +124,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let url_bar = title_block(
         " URL [2] ".into(),
-        if app.active_pane == Pane::Url {
+        if app.window_state.focused_pane == Pane::Url {
             Color::Green
         } else {
             Color::White
@@ -135,7 +135,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let req_details_block = title_block(
         " Request [3] ".into(),
-        if app.active_pane == Pane::Request {
+        if app.window_state.focused_pane == Pane::Request {
             Color::Green
         } else {
             Color::White
@@ -143,11 +143,11 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     );
     let req_tabs = Tabs::new(tabs.clone())
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(app.req_tab.clone().into());
+        .select(app.window_state.req_tab.clone().into());
 
     if let Some(coll) = &app.collection {
         if let Some(req) = &coll.requests.get(
-            app.req_list_state
+            app.window_state.select_list_state
                 .selected()
                 .expect("Expected there to be a selected request"),
         ) {
@@ -158,11 +158,11 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         }
     }
 
-    match &app.req_tab {
+    match &app.window_state.req_tab {
         Tab::Body => {
             let req_body = if let Some(coll) = &app.collection {
                 if let Some(req) = &coll.requests.get(
-                    app.req_list_state
+                    app.window_state.select_list_state
                         .selected()
                         .expect("Expected there to be a selected request"),
                 ) {
@@ -174,7 +174,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 } else {
                     warn!(
                         "Tried to retrieve request at index: {}",
-                        app.req_list_state.selected().unwrap()
+                        app.window_state.select_list_state.selected().unwrap()
                     );
                     Paragraph::default()
                 }
@@ -189,7 +189,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 .column_spacing(1)
                 .rows(if let Some(coll) = &app.collection {
                     if let Some(req) = &coll.requests.get(
-                        app.req_list_state
+                        app.window_state.select_list_state
                             .selected()
                             .expect("Expected there to be a selected request"),
                     ) {
@@ -211,7 +211,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let res_details_block = title_block(
         " Response [4] ".into(),
-        if app.active_pane == Pane::Response {
+        if app.window_state.focused_pane == Pane::Response {
             Color::Green
         } else {
             Color::White
@@ -221,14 +221,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(Tab::Headers.into());
 
-    frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.req_list_state);
+    frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.window_state.select_list_state);
     //frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
     frame.render_widget(res_tabs, res_layout[0]);
 
-    match app.active_modal {
+    match app.window_state.modal {
         Modal::None => {}
         Modal::LoadCollection => {
             let modal = title_block(" Load Collection ".into(), Color::White);
