@@ -1,5 +1,5 @@
-use carrier_pigeon_core::Request;
 use crate::ui;
+use carrier_pigeon_core::Request;
 
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,56 @@ pub enum Pane {
     Request,
     Response,
     Url,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub enum Tab {
+    #[default]
+    Body,
+    Headers,
+}
+
+impl Tab {
+    pub fn to_vec() -> Vec<Tab> {
+        vec![Tab::Body, Tab::Headers]
+    }
+}
+
+impl std::fmt::Display for Tab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Body => "Body",
+                Self::Headers => "Headers",
+            }
+        )
+    }
+}
+
+impl From<Tab> for usize {
+    fn from(value: Tab) -> Self {
+        match value {
+            Tab::Body => 0,
+            Tab::Headers => 1,
+        }
+    }
+}
+
+impl From<usize> for Tab {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Tab::Body,
+            1 => Tab::Headers,
+            _ => Tab::Headers,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Secret {
+    RawValue,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -135,58 +185,8 @@ impl Collection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Secret {
-    RawValue,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct GlobalState {
     pub secrets: HashMap<Box<str>, Secret>,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub enum Tab {
-    #[default]
-    Body,
-    Headers,
-}
-
-impl Tab {
-    pub fn to_vec() -> Vec<Tab> {
-        vec![Tab::Body, Tab::Headers]
-    }
-}
-
-impl std::fmt::Display for Tab {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Body => "Body",
-                Self::Headers => "Headers",
-            }
-        )
-    }
-}
-
-impl From<Tab> for usize {
-    fn from(value: Tab) -> Self {
-        match value {
-            Tab::Body => 0,
-            Tab::Headers => 1,
-        }
-    }
-}
-
-impl From<usize> for Tab {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Tab::Body,
-            1 => Tab::Headers,
-            _ => Tab::Headers,
-        }
-    }
 }
 
 pub struct AbsentValue;
@@ -238,6 +238,7 @@ impl<'a> AppBuilder<Logs<'a>, State, WorkDir> {
             global: self.global_state.0,
             req_list_state: ListState::default(),
             req_tab: Tab::default(),
+            input_buf: String::default(),
             debug_logs: self.logs.0,
             show_debug: false,
         }
@@ -254,6 +255,7 @@ pub struct App<'a> {
     pub global: GlobalState,
     pub req_list_state: ListState,
     pub req_tab: Tab,
+    pub input_buf: String,
     // Debugging
     pub debug_logs: Arc<Mutex<ui::logging::RecordBuff<'a>>>,
     pub show_debug: bool,
