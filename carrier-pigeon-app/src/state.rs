@@ -1,6 +1,7 @@
 use crate::ui;
 use carrier_pigeon_core::Request;
 
+use carrier_pigeon_macros::{DisplayEnum, ListEnum, OrderedEnum};
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -24,7 +25,7 @@ pub enum Mode {
     Insert,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
 pub enum Pane {
     #[default]
     Select,
@@ -33,49 +34,11 @@ pub enum Pane {
     Url,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, DisplayEnum, ListEnum, OrderedEnum)]
 pub enum Tab {
     #[default]
     Body,
     Headers,
-}
-
-impl Tab {
-    pub fn to_vec() -> Vec<Tab> {
-        vec![Tab::Body, Tab::Headers]
-    }
-}
-
-impl std::fmt::Display for Tab {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Body => "Body",
-                Self::Headers => "Headers",
-            }
-        )
-    }
-}
-
-impl From<Tab> for usize {
-    fn from(value: Tab) -> Self {
-        match value {
-            Tab::Body => 0,
-            Tab::Headers => 1,
-        }
-    }
-}
-
-impl From<usize> for Tab {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Tab::Body,
-            1 => Tab::Headers,
-            _ => Tab::Headers,
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
