@@ -84,6 +84,8 @@ pub fn modal_layout(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
 }
 
 pub fn draw(app: &mut App, frame: &mut Frame) {
+    let window_state = &app.window_state;
+
     let layout = screen_layout(frame);
     let req_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
         .margin(1)
@@ -94,7 +96,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let req_select_block = title_block(
         " Requests [1] ".into(),
-        if app.window_state.focused_pane == Pane::Select {
+        if window_state.focused_pane == Pane::Select {
             Color::Green
         } else {
             Color::White
@@ -124,7 +126,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let url_bar = title_block(
         " URL [2] ".into(),
-        if app.window_state.focused_pane == Pane::Url {
+        if window_state.focused_pane == Pane::Url {
             Color::Green
         } else {
             Color::White
@@ -135,7 +137,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let req_details_block = title_block(
         " Request [3] ".into(),
-        if app.window_state.focused_pane == Pane::Request {
+        if window_state.focused_pane == Pane::Request {
             Color::Green
         } else {
             Color::White
@@ -158,11 +160,11 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         }
     }
 
-    match &app.window_state.req_tab {
+    match window_state.req_tab {
         Tab::Body => {
             let req_body = if let Some(coll) = &app.collection {
                 if let Some(req) = &coll.requests.get(
-                    app.window_state.select_list_state
+                    window_state.select_list_state
                         .selected()
                         .expect("Expected there to be a selected request"),
                 ) {
@@ -174,7 +176,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 } else {
                     warn!(
                         "Tried to retrieve request at index: {}",
-                        app.window_state.select_list_state.selected().unwrap()
+                        window_state.select_list_state.selected().unwrap()
                     );
                     Paragraph::default()
                 }
@@ -189,7 +191,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 .column_spacing(1)
                 .rows(if let Some(coll) = &app.collection {
                     if let Some(req) = &coll.requests.get(
-                        app.window_state.select_list_state
+                        window_state.select_list_state
                             .selected()
                             .expect("Expected there to be a selected request"),
                     ) {
@@ -211,7 +213,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let res_details_block = title_block(
         " Response [4] ".into(),
-        if app.window_state.focused_pane == Pane::Response {
+        if window_state.focused_pane == Pane::Response {
             Color::Green
         } else {
             Color::White
@@ -228,7 +230,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     frame.render_widget(req_tabs, req_layout[0]);
     frame.render_widget(res_tabs, res_layout[0]);
 
-    match app.window_state.modal {
+    match &app.window_state.modal {
         Modal::None => {}
         Modal::LoadCollection => {
             let modal = title_block(" Load Collection ".into(), Color::White);
