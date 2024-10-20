@@ -60,8 +60,14 @@ pub fn ordered_enum(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = input.ident;
-    let (to_usize, to_varient) = if let syn::Data::Enum(data) = input.data {
-        data.variants.into_iter()
+    let (to_usize, to_varient, last_varient) = if let syn::Data::Enum(data) = input.data {
+        let last_varient = if let Some(variant) = &data.variants.last() {
+            quote! { _ => #name::#variant }
+        } else {
+            quote! { _ => panic!("There are no variants!"); }
+        };
+
+        let (to_usize, to_varient) = data.variants.clone().into_iter()
             .map(|v| v.ident)
             .enumerate().fold(
             (vec![], vec![]),
@@ -70,13 +76,14 @@ pub fn ordered_enum(input: TokenStream) -> TokenStream {
                 to_varient.push(quote! { #idx => #name::#varient, });
                 (to_usize, to_varient)
             },
-        )
+        );
+        (to_usize, to_varient, last_varient)
     } else {
         panic!("OrderedEnum only supports enums.");
     };
 
     let expanded = quote! {
-        impl From<#name> for usize {
+       impl From<#name> for usize {
             fn from(val: #name) -> Self {
                 match val {
                     #(#to_usize)*
@@ -84,11 +91,14 @@ pub fn ordered_enum(input: TokenStream) -> TokenStream {
             }
         }
 
+        /// This implementation of From essentially index's into the enum.
+        /// Returning the Enum variant corresponding to the index of the usize being converted.
+        /// When the index is out of bounds the last variant of the Enum is returned.
         impl From<usize> for #name {
             fn from(val: usize) -> Self {
                 match val {
                     #(#to_varient)*
-                    _ => panic!("Index out of bounds")
+                    #last_varient
                 }
             }
         }
