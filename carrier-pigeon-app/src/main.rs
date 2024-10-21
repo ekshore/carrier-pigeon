@@ -325,14 +325,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    let cur_tab_idx: usize = app.window_state.req_tab.clone().into();
-                    app.window_state.req_tab = Tab::from(if cur_tab_idx == 0 {
-                        cur_tab_idx
-                    } else {
-                        cur_tab_idx - 1
-                    });
+                    app.window_state.req_tab = app.window_state.req_tab.clone().prev_tab();
                 }
-                Pane::Response => {}
+                Pane::Response => {
+                    app.window_state.res_tab = app.window_state.res_tab.clone().prev_tab();
+                }
                 Pane::Url => {}
             }
             None
@@ -342,10 +339,11 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    let cur_tab_idx: usize = app.window_state.req_tab.clone().into();
-                    app.window_state.req_tab = Tab::from(cur_tab_idx + 1);
+                    app.window_state.req_tab = app.window_state.req_tab.clone().next_tab();
                 }
-                Pane::Response => {}
+                Pane::Response => {
+                    app.window_state.res_tab = app.window_state.res_tab.clone().next_tab();
+                }
                 Pane::Url => {}
             }
             None

@@ -34,6 +34,21 @@ pub enum Tab {
     Headers,
 }
 
+impl Tab {
+    pub fn prev_tab(self) -> Self {
+        let idx: usize = usize::from(self);
+        if idx == 0 {
+            idx.into()
+        } else {
+            (idx - 1).into()
+        }
+    }
+
+    pub fn next_tab(self) -> Self {
+        Tab::from(usize::from(self) + 1usize)
+    }
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct WindowState {
     pub modal: Modal,

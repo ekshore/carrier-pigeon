@@ -221,7 +221,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     );
     let res_tabs = Tabs::new(tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(Tab::Headers.into());
+        .select(window_state.res_tab.clone().into());
 
     frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.window_state.select_list_state);
     //frame.render_widget(url_bar, layout.url_area);
