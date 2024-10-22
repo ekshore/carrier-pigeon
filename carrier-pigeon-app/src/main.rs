@@ -15,7 +15,7 @@ mod tui;
 mod ui;
 
 use crate::state::{
-    App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection, Tab,
+    App, Collection, Environment, EnvironmentValues, Mode, Pane, Secret, SerializedCollection,
 };
 
 #[allow(dead_code)]

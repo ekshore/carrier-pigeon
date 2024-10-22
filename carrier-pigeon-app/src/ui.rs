@@ -135,7 +135,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         },
     );
 
-    let tabs: Vec<String> = Tab::to_vec().into_iter().map(|v| v.to_string()).collect();
+    let req_tabs: Vec<String> = RequestTab::to_vec()
+        .iter()
+        .map(|v| convert_case(v.to_string()))
+        .collect();
+    let res_tabs: Vec<String> = ResponseTab::to_vec()
+        .iter()
+        .map(|v| convert_case(v.to_string()))
+        .collect();
 
     let req_details_block = title_block(
         " Request [3] ".into(),
@@ -145,13 +152,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
             Color::White
         },
     );
-    let req_tabs = Tabs::new(tabs.clone())
+    let req_tabs = Tabs::new(req_tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(app.window_state.req_tab.clone().into());
 
     if let Some(coll) = &app.collection {
         if let Some(req) = &coll.requests.get(
-            app.window_state.select_list_state
+            app.window_state
+                .select_list_state
                 .selected()
                 .expect("Expected there to be a selected request"),
         ) {
@@ -163,10 +171,11 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     }
 
     match window_state.req_tab {
-        Tab::Body => {
+        RequestTab::Body => {
             let req_body = if let Some(coll) = &app.collection {
                 if let Some(req) = &coll.requests.get(
-                    window_state.select_list_state
+                    window_state
+                        .select_list_state
                         .selected()
                         .expect("Expected there to be a selected request"),
                 ) {
@@ -187,13 +196,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
             };
             frame.render_widget(req_body, req_layout[1]);
         }
-        Tab::Headers => {
+        RequestTab::Headers => {
             let header_table = Table::default()
                 .header(Row::new(vec!["Header Name", "Value"]).style(Style::new().bold()))
                 .column_spacing(1)
                 .rows(if let Some(coll) = &app.collection {
                     if let Some(req) = &coll.requests.get(
-                        window_state.select_list_state
+                        window_state
+                            .select_list_state
                             .selected()
                             .expect("Expected there to be a selected request"),
                     ) {
@@ -211,6 +221,8 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 });
             frame.render_widget(header_table, req_layout[1]);
         }
+        RequestTab::PathParams => {}
+        RequestTab::QueryParams => {}
     }
 
     let res_details_block = title_block(
@@ -221,11 +233,15 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
             Color::White
         },
     );
-    let res_tabs = Tabs::new(tabs)
+    let res_tabs = Tabs::new(res_tabs)
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(window_state.res_tab.clone().into());
 
-    frame.render_stateful_widget(req_list, layout.req_list_area, &mut app.window_state.select_list_state);
+    frame.render_stateful_widget(
+        req_list,
+        layout.req_list_area,
+        &mut app.window_state.select_list_state,
+    );
     //frame.render_widget(url_bar, layout.url_area);
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);

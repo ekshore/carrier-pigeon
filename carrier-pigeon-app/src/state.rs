@@ -28,13 +28,15 @@ pub enum Pane {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, DisplayEnum, ListEnum, OrderedEnum)]
-pub enum Tab {
+pub enum RequestTab {
     #[default]
     Body,
     Headers,
+    PathParams,
+    QueryParams,
 }
 
-impl Tab {
+impl RequestTab {
     pub fn prev_tab(self) -> Self {
         let idx: usize = usize::from(self);
         if idx == 0 {
@@ -45,16 +47,39 @@ impl Tab {
     }
 
     pub fn next_tab(self) -> Self {
-        Tab::from(usize::from(self) + 1usize)
+        Self::from(usize::from(self) + 1usize)
     }
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, DisplayEnum, ListEnum, OrderedEnum)]
+pub enum ResponseTab {
+    #[default]
+    Body,
+    Headers,
+}
+
+impl ResponseTab {
+    pub fn prev_tab(self) -> Self {
+        let idx: usize = usize::from(self);
+        if idx == 0 {
+            idx.into()
+        } else {
+            (idx - 1).into()
+        }
+    }
+
+    pub fn next_tab(self) -> Self {
+        Self::from(usize::from(self) + 1usize)
+    }
+}
+
 
 #[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct WindowState {
     pub modal: Modal,
     pub focused_pane: Pane,
-    pub req_tab: Tab,
-    pub res_tab: Tab,
+    pub req_tab: RequestTab,
+    pub res_tab: ResponseTab,
     #[serde(skip_serializing, skip_deserializing)]
     pub select_list_state: ListState,
 }
