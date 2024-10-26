@@ -1,23 +1,24 @@
 use log::warn;
 use ratatui::{
     layout::{Alignment, Constraint, Layout},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Style, Stylize},
     terminal::Frame,
-    text::{Line, Span, Text},
+    text::Line,
     widgets::{
         block::{Position, Title},
-        Clear, List, Paragraph, Row, Table, Tabs, Wrap,
+        Clear, Paragraph, Row, Table, Tabs, Wrap,
     },
 };
+use ratatui::style::Color;
+use widgets::RequestSelect;
 
-pub mod logging;
 mod layout;
+pub mod logging;
 mod widgets;
 
 use crate::state::*;
-use crate::ui::widgets::UrlBar;
 use crate::ui::layout::*;
-
+use crate::ui::widgets::UrlBar;
 
 pub fn draw(app: &mut App, frame: &mut Frame) {
     let window_state = &app.window_state;
@@ -29,36 +30,6 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     let res_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
         .margin(1)
         .split(layout.res_area);
-
-    let req_select_block = title_block(
-        " Requests [1] ".into(),
-        if window_state.focused_pane == Pane::Select {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-
-    let req_list: List = if let Some(collection) = &app.collection {
-        List::new(
-            collection
-                .requests
-                .iter()
-                .map(request_text)
-                .collect::<Vec<_>>(),
-        )
-    } else {
-        let empty_list: Vec<String> = vec![];
-        List::new(empty_list)
-    };
-
-    let req_list = req_list
-        .block(req_select_block)
-        .style(Style::default().fg(Color::White))
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true)
-        .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
-        .direction(ratatui::widgets::ListDirection::TopToBottom);
 
     let req_tabs: Vec<String> = RequestTab::to_vec()
         .iter()
@@ -83,6 +54,14 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let url_bar = UrlBar::construct(app);
     frame.render_widget(url_bar, layout.url_area);
+
+    let req_list =
+        RequestSelect::default().requests(app.collection.as_ref().map(|coll| &coll.requests));
+    let req_list = if Pane::Select == window_state.focused_pane {
+        req_list.focused()
+    } else {
+        req_list
+    };
 
     match window_state.req_tab {
         RequestTab::Body => {
@@ -220,20 +199,6 @@ fn convert_case(str: String) -> String {
         return_bytes.push(*byte);
     }
     String::from_utf8(return_bytes).expect("If the blows up we have bigger problems")
-}
-
-use carrier_pigeon_core::{Method, Request};
-fn request_text(req: &Request) -> Text<'_> {
-    let method_style = match req.method {
-        Method::Get => Style::new().green().bold(),
-        Method::Post => Style::new().magenta().bold(),
-    };
-    Line::from(vec![
-        Span::styled(format!("{:5}", req.method.to_string()), method_style),
-        Span::raw(": "),
-        Span::raw(req.name.clone()),
-    ])
-    .into()
 }
 
 #[cfg(test)]

@@ -1,10 +1,13 @@
+use carrier_pigeon_core::{Method, Request};
 use ratatui::{
     layout::Rect,
-    style::Color,
-    widgets::{Paragraph, Widget},
+    style::{Color, Modifier, Style, Stylize},
+    text::{Line, Span, Text},
+    widgets::{List, ListState, Paragraph, StatefulWidget, Widget},
 };
 
 use crate::state::{App, Pane, WindowState};
+use crate::ui::layout;
 
 #[derive(Default)]
 pub struct UrlBar<'a> {
@@ -72,5 +75,85 @@ impl Widget for UrlBar<'_> {
         } else {
             url_bar.render(area, buf);
         }
+    }
+}
+
+fn request_text(req: &Request) -> Text<'_> {
+    let method_style = match req.method {
+        Method::Get => Style::new().green().bold(),
+        Method::Post => Style::new().magenta().bold(),
+    };
+    Line::from(vec![
+        Span::styled(format!("{:5}", req.method.to_string()), method_style),
+        Span::raw(": "),
+        Span::raw(req.name.clone()),
+    ])
+    .into()
+}
+
+pub struct RequestSelect<'a> {
+    requests: List<'a>,
+    is_focused: bool,
+}
+
+impl<'a> RequestSelect<'a> {
+    pub fn _construct(app: &'a App) -> Self {
+        let requests: List = if let Some(coll) = &app.collection {
+            List::new(coll.requests.iter().map(request_text).collect::<Vec<_>>())
+        } else {
+            List::new(Vec::<String>::new())
+        };
+        let is_focused = Pane::Select == app.window_state.focused_pane;
+        Self {
+            requests,
+            is_focused,
+        }
+    }
+
+    pub fn requests(mut self, reqs: Option<&'a Vec<Request>>) -> Self {
+        self.requests = if let Some(reqs) = reqs {
+            List::new(reqs.iter().map(request_text).collect::<Vec<_>>())
+        } else {
+            List::new(Vec::<String>::new())
+        };
+        self
+    }
+
+    pub fn focused(mut self) -> Self {
+        self.is_focused = true;
+        self
+    }
+}
+
+impl Default for RequestSelect<'_> {
+    fn default() -> Self {
+        Self {
+            requests: List::new(Vec::<String>::new()),
+            is_focused: false,
+        }
+    }
+}
+
+impl StatefulWidget for RequestSelect<'_> {
+    type State = ListState;
+
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+        let block = layout::title_block(
+            String::from(" Request [1] "),
+            if self.is_focused {
+                Color::Green
+            } else {
+                Color::White
+            },
+        );
+        let this = self
+            .requests
+            .block(block)
+            .style(Style::default().fg(Color::White))
+            .highlight_symbol(">>")
+            .repeat_highlight_symbol(true)
+            .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
+            .direction(ratatui::widgets::ListDirection::TopToBottom);
+        ratatui::widgets::StatefulWidget::render(this, area, buf, state);
     }
 }
