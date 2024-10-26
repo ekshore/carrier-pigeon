@@ -1,4 +1,3 @@
-use crate::state::*;
 use log::warn;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -7,13 +6,15 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         block::{Block, Position, Title},
-        BorderType, Borders, Clear, List, Paragraph, Row, Table, Tabs, Wrap,
+        BorderType, Borders, Clear, List, Paragraph, Row, Table, Tabs, Widget, Wrap,
     },
 };
 
-use crate::state::App;
-
 pub mod logging;
+mod widgets;
+
+use crate::state::*;
+use crate::ui::widgets::UrlBar;
 
 struct ScreenLayout {
     req_list_area: Rect,
@@ -126,15 +127,6 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
         .direction(ratatui::widgets::ListDirection::TopToBottom);
 
-    let url_bar = title_block(
-        " URL [2] ".into(),
-        if window_state.focused_pane == Pane::Url {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-
     let req_tabs: Vec<String> = RequestTab::to_vec()
         .iter()
         .map(|v| convert_case(v.to_string()))
@@ -156,19 +148,8 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
         .select(app.window_state.req_tab.clone().into());
 
-    if let Some(coll) = &app.collection {
-        if let Some(req) = &coll.requests.get(
-            app.window_state
-                .select_list_state
-                .selected()
-                .expect("Expected there to be a selected request"),
-        ) {
-            let url_text = Paragraph::new(req.url.as_str()).block(url_bar);
-            frame.render_widget(url_text, layout.url_area);
-        } else {
-            frame.render_widget(url_bar, layout.url_area);
-        }
-    }
+    let url_bar = UrlBar::construct(app);
+    frame.render_widget(url_bar, layout.url_area);
 
     match window_state.req_tab {
         RequestTab::Body => {
@@ -242,7 +223,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         layout.req_list_area,
         &mut app.window_state.select_list_state,
     );
-    //frame.render_widget(url_bar, layout.url_area);
+
     frame.render_widget(req_details_block, layout.req_area);
     frame.render_widget(res_details_block, layout.res_area);
     frame.render_widget(req_tabs, req_layout[0]);
