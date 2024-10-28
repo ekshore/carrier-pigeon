@@ -325,7 +325,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    app.window_state.req_tab = app.window_state.req_tab.clone().prev_tab();
+                    app.window_state.req_state.selected_tab =
+                        app.window_state.req_state.selected_tab.clone().prev_tab();
                 }
                 Pane::Response => {
                     app.window_state.res_tab = app.window_state.res_tab.clone().prev_tab();
@@ -339,7 +340,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
             match app.window_state.focused_pane {
                 Pane::Select => {}
                 Pane::Request => {
-                    app.window_state.req_tab = app.window_state.req_tab.clone().next_tab();
+                    app.window_state.req_state.selected_tab =
+                        app.window_state.req_state.selected_tab.clone().next_tab();
                 }
                 Pane::Response => {
                     app.window_state.res_tab = app.window_state.res_tab.clone().next_tab();

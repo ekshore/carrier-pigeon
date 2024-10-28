@@ -1,13 +1,16 @@
+use log::warn;
 use carrier_pigeon_core::{Method, Request};
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{List, ListState, Paragraph, StatefulWidget, Widget},
+    widgets::{List, ListState, Paragraph, Row, StatefulWidget, Table, Tabs, Widget, Wrap},
 };
 
 use crate::state::{App, Pane, WindowState};
 use crate::ui::layout;
+
+use super::{util, RequestDetailsState, RequestTab};
 
 #[derive(Default)]
 pub struct UrlBar<'a> {
@@ -155,5 +158,95 @@ impl StatefulWidget for RequestSelect<'_> {
             .highlight_style(Style::new().add_modifier(Modifier::UNDERLINED))
             .direction(ratatui::widgets::ListDirection::TopToBottom);
         ratatui::widgets::StatefulWidget::render(this, area, buf, state);
+    }
+}
+
+#[derive(Default)]
+pub struct RequestDetails<'a> {
+    request: Option<&'a Request>,
+    is_focused: bool,
+}
+
+impl<'a> RequestDetails<'a> {
+    pub fn construct(app: &'a App) -> Self {
+        let ws = &app.window_state;
+        let is_focused = Pane::Request == ws.focused_pane;
+        let request = if let Some(coll) = &app.collection {
+            coll.requests
+                .get(ws.select_list_state.selected().expect("Should be selected"))
+        } else {
+            None
+        };
+
+        Self {
+            request,
+            is_focused,
+        }
+    }
+
+    pub fn request(mut self, req: Option<&'a Request>) -> Self {
+        self.request = req;
+        self
+    }
+
+    pub fn is_focused(mut self, is_focused: bool) -> Self {
+        self.is_focused = is_focused;
+        self
+    }
+}
+
+impl StatefulWidget for RequestDetails<'_> {
+    type State = RequestDetailsState;
+
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+            .margin(1)
+            .split(area);
+        let block = layout::title_block(
+            String::from(" Request [3] "),
+            if self.is_focused {
+                Color::Green
+            } else {
+                Color::White
+            },
+        );
+        block.render(area, buf);
+
+        let req_tabs: Vec<String> = RequestTab::to_vec()
+            .iter()
+            .map(|v| util::convert_case(v.to_string()))
+            .collect();
+        let req_tabs = Tabs::new(req_tabs)
+            .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
+            .select(usize::from(state.selected_tab.clone()));
+        req_tabs.render(layout[0], buf);
+
+        if let Some(req) = self.request {
+            match state.selected_tab {
+                RequestTab::Body => {
+                    let body = if let Some(body) = &req.body {
+                        Paragraph::new(body.as_str()).wrap(Wrap { trim: true })
+                    } else {
+                        Paragraph::default()
+                    };
+                    body.render(layout[1], buf);
+                }
+                RequestTab::Headers => {
+                    let header_table = Table::default()
+                        .header(Row::new(vec!["Header Name", "Value"]))
+                        .rows(
+                            req.headers
+                                .iter()
+                                .map(|header| {
+                                    Row::new(vec![header.name.as_ref(), header.value.as_ref()])
+                                })
+                                .collect::<Vec<Row>>(),
+                        );
+                    Widget::render(header_table, layout[1], buf);
+                }
+                RequestTab::PathParams => {}
+                RequestTab::QueryParams => {}
+            };
+        }
     }
 }
