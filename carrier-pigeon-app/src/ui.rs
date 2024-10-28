@@ -1,3 +1,4 @@
+use ratatui::style::Color;
 use ratatui::{
     layout::{Alignment, Constraint, Layout},
     style::Style,
@@ -8,7 +9,6 @@ use ratatui::{
         Clear, Paragraph, Tabs, Wrap,
     },
 };
-use ratatui::style::Color;
 use widgets::{RequestDetails, RequestSelect};
 
 pub mod logging;
@@ -45,12 +45,19 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
 
     let req_details = if let Some(coll) = &app.collection {
         RequestDetails::default()
-            .request(coll.requests.get(app.window_state.select_list_state.selected().unwrap_or(0)))
+            .request(
+                coll.requests
+                    .get(app.window_state.select_list_state.selected().unwrap_or(0)),
+            )
             .is_focused(Pane::Request == app.window_state.focused_pane)
     } else {
         RequestDetails::default()
     };
-    frame.render_stateful_widget(req_details, layout.req_area, &mut app.window_state.req_state);
+    frame.render_stateful_widget(
+        req_details,
+        layout.req_area,
+        &mut app.window_state.req_state,
+    );
 
     let res_details_block = title_block(
         " Response [4] ".into(),
@@ -118,5 +125,3 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         frame.render_widget(log_paragraph, area);
     }
 }
-
-
