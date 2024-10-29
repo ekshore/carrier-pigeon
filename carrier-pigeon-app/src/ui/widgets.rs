@@ -1,5 +1,5 @@
-use log::warn;
 use carrier_pigeon_core::{Method, Request};
+use log::warn;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -168,22 +168,6 @@ pub struct RequestDetails<'a> {
 }
 
 impl<'a> RequestDetails<'a> {
-    pub fn construct(app: &'a App) -> Self {
-        let ws = &app.window_state;
-        let is_focused = Pane::Request == ws.focused_pane;
-        let request = if let Some(coll) = &app.collection {
-            coll.requests
-                .get(ws.select_list_state.selected().expect("Should be selected"))
-        } else {
-            None
-        };
-
-        Self {
-            request,
-            is_focused,
-        }
-    }
-
     pub fn request(mut self, req: Option<&'a Request>) -> Self {
         self.request = req;
         self
