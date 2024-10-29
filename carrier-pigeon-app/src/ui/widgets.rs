@@ -1,5 +1,4 @@
 use carrier_pigeon_core::{Method, Request};
-use log::warn;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -7,10 +6,12 @@ use ratatui::{
     widgets::{List, ListState, Paragraph, Row, StatefulWidget, Table, Tabs, Widget, Wrap},
 };
 
-use crate::state::{App, Pane, WindowState};
+use crate::state::{
+    App, Pane, RequestDetailsState, RequestTab, ResponseDetailsState, ResponseTab, WindowState,
+};
 use crate::ui::layout;
 
-use super::{util, RequestDetailsState, RequestTab};
+use super::util;
 
 #[derive(Default)]
 pub struct UrlBar<'a> {
@@ -232,5 +233,48 @@ impl StatefulWidget for RequestDetails<'_> {
                 RequestTab::QueryParams => {}
             };
         }
+    }
+}
+
+#[derive(Default)]
+pub struct ResponseDetails {
+    is_focused: bool,
+}
+
+impl ResponseDetails {
+    pub fn is_focused(mut self, is_focused: bool) -> Self {
+        self.is_focused = is_focused;
+        self
+    }
+}
+
+impl StatefulWidget for ResponseDetails {
+    type State = ResponseDetailsState;
+
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
+            .margin(1)
+            .split(area);
+
+        let block = layout::title_block(
+            String::from(" Response [4] "),
+            if self.is_focused {
+                Color::Green
+            } else {
+                Color::White
+            },
+        );
+        block.render(area, buf);
+
+        let res_tabs: Vec<String> = ResponseTab::to_vec()
+            .iter()
+            .map(|val| val.to_string())
+            .map(util::convert_case)
+            .collect();
+
+        let res_tabs = Tabs::new(res_tabs)
+            .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
+            .select(state.selected_tab.clone().into());
+        res_tabs.render(layout[0], buf);
     }
 }

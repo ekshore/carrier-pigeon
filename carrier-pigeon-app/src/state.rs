@@ -56,6 +56,11 @@ impl RequestTab {
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+pub struct ResponseDetailsState {
+    pub selected_tab: ResponseTab,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, DisplayEnum, ListEnum, OrderedEnum)]
 pub enum ResponseTab {
     #[default]
@@ -84,7 +89,7 @@ pub struct WindowState {
     pub modal: Modal,
     pub focused_pane: Pane,
     pub req_state: RequestDetailsState,
-    pub res_tab: ResponseTab,
+    pub res_state: ResponseDetailsState,
     #[serde(skip_serializing, skip_deserializing)]
     pub select_list_state: ListState,
 }

@@ -9,7 +9,7 @@ use ratatui::{
         Clear, Paragraph, Tabs, Wrap,
     },
 };
-use widgets::{RequestDetails, RequestSelect};
+use widgets::{RequestDetails, RequestSelect, ResponseDetails};
 
 pub mod logging;
 
@@ -34,14 +34,11 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     } else {
         req_list
     };
-
-    let res_layout = Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)])
-        .margin(1)
-        .split(layout.res_area);
-    let res_tabs: Vec<String> = ResponseTab::to_vec()
-        .iter()
-        .map(|v| util::convert_case(v.to_string()))
-        .collect();
+    frame.render_stateful_widget(
+        req_list,
+        layout.req_list_area,
+        &mut app.window_state.select_list_state,
+    );
 
     let req_details = if let Some(coll) = &app.collection {
         RequestDetails::default()
@@ -59,26 +56,13 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
         &mut app.window_state.req_state,
     );
 
-    let res_details_block = title_block(
-        " Response [4] ".into(),
-        if app.window_state.focused_pane == Pane::Response {
-            Color::Green
-        } else {
-            Color::White
-        },
-    );
-    let res_tabs = Tabs::new(res_tabs)
-        .highlight_style(Style::default().bg(Color::White).fg(Color::from_u32(40)))
-        .select(app.window_state.res_tab.clone().into());
-
+    let res_details =
+        ResponseDetails::default().is_focused(Pane::Response == app.window_state.focused_pane);
     frame.render_stateful_widget(
-        req_list,
-        layout.req_list_area,
-        &mut app.window_state.select_list_state,
+        res_details,
+        layout.res_area,
+        &mut app.window_state.res_state,
     );
-
-    frame.render_widget(res_details_block, layout.res_area);
-    frame.render_widget(res_tabs, res_layout[0]);
 
     match &app.window_state.modal {
         Modal::None => {}

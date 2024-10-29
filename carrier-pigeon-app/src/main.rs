@@ -329,7 +329,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                         app.window_state.req_state.selected_tab.clone().prev_tab();
                 }
                 Pane::Response => {
-                    app.window_state.res_tab = app.window_state.res_tab.clone().prev_tab();
+                    app.window_state.res_state.selected_tab = 
+                        app.window_state.res_state.selected_tab.clone().prev_tab();
                 }
                 Pane::Url => {}
             }
@@ -344,7 +345,8 @@ fn update(app: &mut App, msg: Message) -> Result<Option<Message>> {
                         app.window_state.req_state.selected_tab.clone().next_tab();
                 }
                 Pane::Response => {
-                    app.window_state.res_tab = app.window_state.res_tab.clone().next_tab();
+                    app.window_state.res_state.selected_tab = 
+                        app.window_state.res_state.selected_tab.clone().next_tab();
                 }
                 Pane::Url => {}
             }
