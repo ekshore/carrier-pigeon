@@ -45,7 +45,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
                 coll.requests
                     .get(app.window_state.select_list_state.selected().unwrap_or(0)),
             )
-            .is_focused(Pane::Request == app.window_state.focused_pane)
+            .focused(Pane::Request == app.window_state.focused_pane)
     } else {
         RequestDetails::default()
     };
@@ -56,7 +56,7 @@ pub fn draw(app: &mut App, frame: &mut Frame) {
     );
 
     let res_details =
-        ResponseDetails::default().is_focused(Pane::Response == app.window_state.focused_pane);
+        ResponseDetails::default().focused(Pane::Response == app.window_state.focused_pane);
     frame.render_stateful_widget(
         res_details,
         layout.res_area,

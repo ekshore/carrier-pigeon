@@ -174,7 +174,7 @@ impl<'a> RequestDetails<'a> {
         self
     }
 
-    pub fn is_focused(mut self, is_focused: bool) -> Self {
+    pub fn focused(mut self, is_focused: bool) -> Self {
         self.is_focused = is_focused;
         self
     }
@@ -242,7 +242,7 @@ pub struct ResponseDetails {
 }
 
 impl ResponseDetails {
-    pub fn is_focused(mut self, is_focused: bool) -> Self {
+    pub fn focused(mut self, is_focused: bool) -> Self {
         self.is_focused = is_focused;
         self
     }
