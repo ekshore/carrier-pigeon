@@ -1,12 +1,11 @@
 use ratatui::style::Color;
 use ratatui::{
-    layout::{Alignment, Constraint, Layout},
-    style::Style,
+    layout::Alignment,
     terminal::Frame,
     text::Line,
     widgets::{
         block::{Position, Title},
-        Clear, Paragraph, Tabs, Wrap,
+        Clear, Paragraph, Wrap,
     },
 };
 use widgets::{RequestDetails, RequestSelect, ResponseDetails};
