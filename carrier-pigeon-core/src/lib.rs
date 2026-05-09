@@ -14,10 +14,14 @@ pub enum Method {
 
 impl fmt::Display for Method {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::Get => "GET",
-            Self::Post => "POST",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Get => "GET",
+                Self::Post => "POST",
+            }
+        )
     }
 }
 
@@ -546,6 +550,67 @@ mod request_builder {
 
     #[test]
     fn test_build() {
+        let builder = RequestBuilder {
+            name: NoName,
+            method: NoMethod,
+            url: NoUrl,
+            protocol: None,
+            headers: None,
+            body: None,
+            path_params: None,
+            query_params: None,
+        };
+
+        let request = builder
+            .name("TestName".to_string())
+            .method(Method::Get)
+            .url("http://example.com".to_string())
+            .protocol(Protocol::Http)
+            .headers(vec![Header {
+                name: "Content-Type".into(),
+                value: "application/json".into(),
+            }])
+            .body("body content".to_string())
+            .path_params({
+                let mut params = HashMap::new();
+                params.insert("key".to_string(), "value".to_string());
+                params
+            })
+            .query_params({
+                let mut params = HashMap::new();
+                params.insert("key".to_string(), "value".to_string());
+                params
+            })
+            .build();
+
+        assert_eq!(
+            request,
+            Request {
+                name: "TestName".to_string(),
+                protocol: Some(Protocol::Http),
+                url: "http://example.com".to_string(),
+                method: Method::Get,
+                headers: vec![Header {
+                    name: "Content-Type".into(),
+                    value: "application/json".into()
+                }],
+                body: Some("body content".to_string()),
+                path_params: Some({
+                    let mut params = HashMap::new();
+                    params.insert("key".to_string(), "value".to_string());
+                    params
+                }),
+                query_params: Some({
+                    let mut params = HashMap::new();
+                    params.insert("key".to_string(), "value".to_string());
+                    params
+                }),
+            }
+        );
+    }
+
+    #[test]
+    fn test_build_missing_path_params() {
         let builder = RequestBuilder {
             name: NoName,
             method: NoMethod,
